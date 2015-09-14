@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type blobHandler []byte
@@ -35,18 +36,23 @@ func (f fileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Log("HTTP", false, "Sent %s to %s (%d bytes)", r.URL, r.RemoteAddr, n)
 }
 
-func ServeHTTP(port int, ldlinux []byte, kernel, initrd, cmdline string) error {
+func ServeHTTP(port int, ldlinux []byte, kernel string, initrd []string, cmdline string) error {
+	var initrdURLs []string
+	for i, path := range initrd {
+		fname := fmt.Sprintf("initrd.%d", i)
+		initrdURLs = append(initrdURLs, fname)
+		http.Handle("/"+fname, fileHandler(path))
+	}
 	pxelinuxCfg := fmt.Sprintf(`
 DEFAULT linux
 LABEL linux
 LINUX kernel
-APPEND initrd=initrd %s
-`, cmdline)
+APPEND initrd=%s %s
+`, strings.Join(initrdURLs, ","), cmdline)
 
 	http.Handle("/ldlinux.c32", blobHandler(ldlinux))
 	http.Handle("/pxelinux.cfg/", blobHandler([]byte(pxelinuxCfg)))
 	http.Handle("/kernel", fileHandler(kernel))
-	http.Handle("/initrd", fileHandler(initrd))
 
 	Log("HTTP", false, "Listening on port %d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)

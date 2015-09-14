@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 //go:generate go-bindata -o pxelinux_autogen.go -prefix=pxelinux pxelinux
@@ -15,7 +16,7 @@ var (
 	portHTTP = flag.Int("http-port", 70, "Port to listen on for HTTP requests")
 
 	kernelFile    = flag.String("kernel", "vmlinuz", "Path to the linux kernel file to boot")
-	initrdFile    = flag.String("initrd", "initrd", "Path to the initrd file to boot")
+	initrdFile    = flag.String("initrd", "initrd", "Comma-separated list of initrds to pass to the kernel")
 	kernelCmdline = flag.String("cmdline", "", "Additional arguments for the kernel commandline")
 
 	debug = flag.Bool("debug", false, "Log more things that aren't directly related to booting a recognized client")
@@ -35,6 +36,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	initrds := strings.Split(*initrdFile, ",")
+
 	go func() {
 		log.Fatalln(ServePXE(*portPXE, *portHTTP))
 	}()
@@ -42,7 +45,7 @@ func main() {
 		log.Fatalln(ServeTFTP(*portTFTP, pxelinux))
 	}()
 	go func() {
-		log.Fatalln(ServeHTTP(*portHTTP, ldlinux, *kernelFile, *initrdFile, *kernelCmdline))
+		log.Fatalln(ServeHTTP(*portHTTP, ldlinux, *kernelFile, initrds, *kernelCmdline))
 	}()
 	RecordLogs(*debug)
 }
