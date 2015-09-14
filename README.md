@@ -173,3 +173,29 @@ trivial pxelinux configuration telling it to boot a linux kernel, and
 the user-provided kernel and initrd files.
 
 Pxelinux grabs all of that, and finally, linux boots.
+
+### Recap
+
+This is what the whole boot process looks like on the wire.
+
+#### Dramatis Personæ
+
+- PXE ROM, a brittle firmware burned into the network card.
+- DHCP server, a plain old DHCP server providing network configuration.
+- Pixieboot, the Hero and server of ProxyDHCP, PXE, TFTP and HTTP.
+- Pxelinux, an open source bootloader of the [Syslinux project](http://www.syslinux.org).
+
+#### Timeline
+
+- PXE ROM starts, broadcasts `DHCPDISCOVER`.
+- DHCP server responds with a `DHCPOFFER` containing network configs.
+- Pixiecore's ProxyDHCP server responds with a `DHCPOFFER` containing a PXE boot menu.
+- PXE ROM does a `DHCPREQUEST`/`DHCPACK` exchange with the DHCP server to get a network configuration.
+- PXE ROM processes the PXE boot menu, decides to boot menu entry 0.
+- PXE ROM sends a `DHCPREQUEST` to Pixiecore's PXE server, asking for a boot file.
+- Pixiecore's PXE server responds with a `DHCPACK` listing a TFTP
+  server, a boot filename, and a pxelinux vendor option to make it use
+  HTTP.
+- PXE ROM downloads pxelinux from Pixiecore's TFTP server, and hands off to pxelinux.
+- Pxelinux fetches its configuration from Pixiecore's HTTP server.
+- Pxelinux fetches a kernel and ramdisk from Pixiecore's HTTP server, and boots linux.
