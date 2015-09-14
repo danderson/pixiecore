@@ -180,10 +180,10 @@ This is what the whole boot process looks like on the wire.
 
 #### Dramatis Personæ
 
-- PXE ROM, a brittle firmware burned into the network card.
-- DHCP server, a plain old DHCP server providing network configuration.
-- Pixieboot, the Hero and server of ProxyDHCP, PXE, TFTP and HTTP.
-- Pxelinux, an open source bootloader of the [Syslinux project](http://www.syslinux.org).
+- **PXE ROM**, a brittle firmware burned into the network card.
+- **DHCP server**, a plain old DHCP server providing network configuration.
+- **Pixieboot**, the Hero and server of ProxyDHCP, PXE, TFTP and HTTP.
+- **Pxelinux**, an open source bootloader of the [Syslinux project](http://www.syslinux.org).
 
 #### Timeline
 
