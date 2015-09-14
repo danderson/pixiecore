@@ -3,28 +3,28 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 )
 
+//go:generate go-bindata -o pxelinux_autogen.go -prefix=pxelinux pxelinux
+
 var (
-	portPXE      = flag.Int("pxe-port", 67, "Port to listen on for PXE DHCP requests")
-	portTFTP     = flag.Int("tftp-port", 69, "Port to listen on for TFTP requests")
-	portHTTP     = flag.Int("http-port", 70, "Port to listen on for HTTP requests")
-	pxelinuxFile = flag.String("pxelinux", "lpxelinux.0", "Path to the HTTP-enabled pxelinux image (usually called lpxelinux.0)")
-	ldlinuxFile  = flag.String("ldlinux32", "ldlinux.c32", "Path to syslinux's ldlinux.c32")
-	debug        = flag.Bool("debug", false, "Log more things that aren't directly related to booting a recognized client")
+	portPXE  = flag.Int("pxe-port", 67, "Port to listen on for PXE DHCP requests")
+	portTFTP = flag.Int("tftp-port", 69, "Port to listen on for TFTP requests")
+	portHTTP = flag.Int("http-port", 70, "Port to listen on for HTTP requests")
+	debug    = flag.Bool("debug", false, "Log more things that aren't directly related to booting a recognized client")
 )
 
 func main() {
 	flag.Parse()
-	pxelinux, err := ioutil.ReadFile(*pxelinuxFile)
+	pxelinux, err := Asset("lpxelinux.0")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	ldlinux, err := ioutil.ReadFile(*ldlinuxFile)
+
+	ldlinux, err := Asset("ldlinux.c32")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
