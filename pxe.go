@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -10,19 +9,16 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
-var dhcpMagic = []byte{99, 130, 83, 99}
-
 type PXEPacket struct {
-	TID  []byte
-	MAC  net.HardwareAddr
-	GUID []byte
+	DHCPPacket
+	ClientIP        net.IP
+	PXEVendorOption []byte // The bytes for DHCP option 43, for the response.
 
-	ServerIP   net.IP
 	HTTPServer string
 }
 
-func ServePXE(port, httpPort int) error {
-	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%d", port))
+func ServePXE(pxePort, httpPort int) error {
+	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%d", pxePort))
 	if err != nil {
 		return err
 	}
@@ -31,7 +27,7 @@ func ServePXE(port, httpPort int) error {
 		return err
 	}
 
-	Log("PXE", false, "Listening on port %d", port)
+	Log("PXE", false, "Listening on port %d", pxePort)
 	buf := make([]byte, 1024)
 	for {
 		n, msg, addr, err := l.ReadFrom(buf)
@@ -39,9 +35,6 @@ func ServePXE(port, httpPort int) error {
 			Log("PXE", false, "Error reading from socket: %s", err)
 			continue
 		}
-
-		udpAddr := addr.(*net.UDPAddr)
-		udpAddr.IP = net.IPv4bcast
 
 		req, err := ParsePXE(buf[:n])
 		if err != nil {
@@ -53,33 +46,35 @@ func ServePXE(port, httpPort int) error {
 		req.ServerIP = net.ParseIP("192.168.16.10").To4()
 		req.HTTPServer = fmt.Sprintf("http://%s:%d/", req.ServerIP, httpPort)
 
-		if _, err := l.WriteTo(OfferPXE(req), &ipv4.ControlMessage{
+		if _, err := l.WriteTo(ReplyPXE(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
-		}, udpAddr); err != nil {
+		}, addr); err != nil {
 			Log("PXE", false, "Responding to %s: %s", req.MAC, err)
 			continue
 		}
-		Log("PXE", false, "Offering to boot %s", req.MAC)
+		Log("PXE", false, "Chainloading %s to pxelinux", req.MAC)
 	}
 }
 
-func OfferPXE(p *PXEPacket) []byte {
-	// Base DHCP response
-	r := make([]byte, 240)
+func ReplyPXE(p *PXEPacket) []byte {
+	r := make([]byte, 236)
 	r[0] = 2 // boot reply
 	r[1] = 1 // PHY = ethernet
-	r[2] = 6 // hardware address length
-	copy(r[4:8], p.TID)
-	r[10] = 0x80 // Please speak broadcast
-	copy(r[28:34], p.MAC)
-	copy(r[44:107], p.ServerIP.String())
-	// The actual filename doesn't matter, the TFTP server serves the
-	// pxelinux binary for any request.
-	copy(r[108:108+127], "pxelinux")
-	copy(r[236:240], dhcpMagic)
+	r[2] = 6 // MAC address length
+	copy(r[4:], p.TID)
+	r[10] = 0x80 // speak broadcast
+	copy(r[16:], p.ClientIP)
+	copy(r[20:], p.ServerIP)
+	copy(r[28:], p.MAC)
+	// Boot file name. Our TFTP server unconditionally serves up
+	// pxelinux no matter the name, so we just put something that
+	// looks nice in packet dumps.
+	copy(r[108:], "boot")
 
-	// DHCPOFFER
-	r = append(r, 53, 1, 2)
+	// DHCP magic
+	r = append(r, dhcpMagic...)
+	// DHCPACK
+	r = append(r, 53, 1, 5)
 	// Server ID
 	r = append(r, 54, 4)
 	r = append(r, p.ServerIP...)
@@ -89,12 +84,14 @@ func OfferPXE(p *PXEPacket) []byte {
 	// Client UUID
 	r = append(r, 97, 17, 0)
 	r = append(r, p.GUID...)
-	// PXE discovery control == "just TFTP the damn file"
-	r = append(r, 43, 4, 6, 1, 1<<3, 255)
-	// PXELinux path prefix (steer to HTTP)
+	// Mirror the menu selection back at the client
+	r = append(r, p.PXEVendorOption...)
+	// Pxelinux path prefix, which makes pxelinux use HTTP for
+	// everything.
 	r = append(r, 210, byte(len(p.HTTPServer)))
 	r = append(r, p.HTTPServer...)
-	// Done
+
+	// Done.
 	r = append(r, 255)
 
 	return r
@@ -106,37 +103,34 @@ func ParsePXE(b []byte) (req *PXEPacket, err error) {
 	}
 
 	ret := &PXEPacket{
-		TID: b[4:8],
-		MAC: net.HardwareAddr(b[28:34]),
+		DHCPPacket: DHCPPacket{
+			TID: b[4:8],
+			MAC: net.HardwareAddr(b[28:34]),
+		},
+		ClientIP: net.IP(b[12:16]),
 	}
 
-	// BOOTP operation type
-	if b[0] != 1 {
-		return nil, fmt.Errorf("packet from %s is not a BOOTP request", ret.MAC)
-	}
-	if b[1] != 1 && b[2] != 6 {
-		return nil, fmt.Errorf("packet from %s is not for an Ethernet PHY", ret.MAC)
-	}
+	// We do lighter packet verification here, because the PXE port
+	// should not have random unrelated traffic on it, and if there
+	// is, the clients deserve everything they get.
 	if !bytes.Equal(b[236:240], dhcpMagic) {
 		return nil, fmt.Errorf("packet from %s is not a DHCP request", ret.MAC)
 	}
 
-	typ, val, opts := option(b[240:])
+	typ, val, opts := dhcpOption(b[240:])
 	for typ != 255 {
 		switch typ {
-		case 53:
-			if len(val) != 1 {
-				return nil, fmt.Errorf("packet from %s has malformed option 53", ret.MAC)
-			}
-			if val[0] != 1 {
-				return nil, fmt.Errorf("packet from %s is not a DHCPDISCOVER", ret.MAC)
-			}
-		case 93:
-			if len(val) != 2 {
-				return nil, fmt.Errorf("packet from %s has malformed option 93", ret.MAC)
-			}
-			if binary.BigEndian.Uint16(val) != 0 {
-				return nil, fmt.Errorf("%s is not an x86 PXE client", ret.MAC)
+		case 43:
+			pxeTyp, pxeVal, val := dhcpOption(val)
+		pxeOptParse:
+			for pxeTyp != 255 {
+				if pxeTyp == 71 {
+					ret.PXEVendorOption = []byte{43, byte(len(pxeVal) + 3), 71, byte(len(pxeVal))}
+					ret.PXEVendorOption = append(ret.PXEVendorOption, pxeVal...)
+					ret.PXEVendorOption = append(ret.PXEVendorOption, 255)
+					break pxeOptParse
+				}
+				pxeTyp, pxeVal, val = dhcpOption(val)
 			}
 		case 97:
 			if len(val) != 17 || val[0] != 0 {
@@ -144,24 +138,16 @@ func ParsePXE(b []byte) (req *PXEPacket, err error) {
 			}
 			ret.GUID = val[1:]
 		}
-		typ, val, opts = option(opts)
+		typ, val, opts = dhcpOption(opts)
 	}
 
 	if ret.GUID == nil {
 		return nil, fmt.Errorf("%s is not a PXE client", ret.MAC)
 	}
+	if ret.PXEVendorOption == nil {
+		return nil, fmt.Errorf("%s hasn't selected a menu option", ret.MAC)
+	}
 
 	// Valid PXE request!
 	return ret, nil
-}
-
-func option(b []byte) (typ byte, val []byte, next []byte) {
-	if len(b) < 2 || b[0] == 255 {
-		return 255, nil, nil
-	}
-	typ, l := b[0], int(b[1])
-	if len(b) < l+2 {
-		return 255, nil, nil
-	}
-	return typ, b[2 : 2+l], b[2+l:]
 }

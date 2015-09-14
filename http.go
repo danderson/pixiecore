@@ -43,12 +43,21 @@ func ServeHTTP(port int, ldlinux []byte, kernel string, initrd []string, cmdline
 		initrdURLs = append(initrdURLs, fname)
 		http.Handle("/"+fname, fileHandler(path))
 	}
+	limerick := strings.Replace(`
+	        There once was a protocol called PXE,
+	        Whose specification was overly tricksy.
+	        A committee refined it,
+	        Into a big Turing tarpit,
+	        And now you're using it to boot your PC.
+	`, "\n", "\nSAY ", -1)
+
 	pxelinuxCfg := fmt.Sprintf(`
+SAY %s
 DEFAULT linux
 LABEL linux
 LINUX kernel
 APPEND initrd=%s %s
-`, strings.Join(initrdURLs, ","), cmdline)
+`, limerick, strings.Join(initrdURLs, ","), cmdline)
 
 	http.Handle("/ldlinux.c32", blobHandler(ldlinux))
 	http.Handle("/pxelinux.cfg/", blobHandler([]byte(pxelinuxCfg)))

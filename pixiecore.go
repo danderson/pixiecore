@@ -11,7 +11,13 @@ import (
 //go:generate go-bindata -o pxelinux_autogen.go -prefix=pxelinux pxelinux
 
 var (
-	portPXE  = flag.Int("pxe-port", 67, "Port to listen on for PXE DHCP requests")
+	// I'm sort of giving you the option to change these ports here,
+	// but all of them except the HTTP port are hardcoded in the PXE
+	// option ROM, so it's pretty pointless unless you'd playing
+	// packet rewriting tricks or doing simulations with packet
+	// generators.
+	portDHCP = flag.Int("dhcp-port", 67, "Port to listen on for DHCP requests")
+	portPXE  = flag.Int("pxe-port", 4011, "Port to listen on for PXE requests")
 	portTFTP = flag.Int("tftp-port", 69, "Port to listen on for TFTP requests")
 	portHTTP = flag.Int("http-port", 70, "Port to listen on for HTTP requests")
 
@@ -38,6 +44,9 @@ func main() {
 
 	initrds := strings.Split(*initrdFile, ",")
 
+	go func() {
+		log.Fatalln(ServeProxyDHCP(*portDHCP))
+	}()
 	go func() {
 		log.Fatalln(ServePXE(*portPXE, *portHTTP))
 	}()
