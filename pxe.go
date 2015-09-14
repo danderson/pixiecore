@@ -43,8 +43,10 @@ func ServePXE(pxePort, httpPort int) error {
 		}
 
 		// TODO: figure out the correct IP
-		req.ServerIP = net.ParseIP("192.168.16.10").To4()
+		req.ServerIP, err = interfaceIP(msg.IfIndex)
 		req.HTTPServer = fmt.Sprintf("http://%s:%d/", req.ServerIP, httpPort)
+
+		Log("PXE", false, "Chainloading %s to pxelinux (via %s)", req.MAC, req.ServerIP)
 
 		if _, err := l.WriteTo(ReplyPXE(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
@@ -52,7 +54,6 @@ func ServePXE(pxePort, httpPort int) error {
 			Log("PXE", false, "Responding to %s: %s", req.MAC, err)
 			continue
 		}
-		Log("PXE", false, "Chainloading %s to pxelinux", req.MAC)
 	}
 }
 

@@ -49,17 +49,19 @@ func ServeProxyDHCP(port int) error {
 			continue
 		}
 
-		// TODO: figure out the correct IP
-		req.ServerIP = net.ParseIP("192.168.16.10").To4()
-		//req.HTTPServer = fmt.Sprintf("http://%s:%d/", req.ServerIP, httpPort)
+		req.ServerIP, err = interfaceIP(msg.IfIndex)
+		if err != nil {
+			Log("ProxyDHCP", false, "Couldn't find an IP address to use to reply to %s: %s", req.MAC, err)
+			continue
+		}
 
+		Log("ProxyDHCP", false, "Offering to boot %s (via %s)", req.MAC, req.ServerIP)
 		if _, err := l.WriteTo(OfferDHCP(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
 		}, udpAddr); err != nil {
 			Log("ProxyDHCP", false, "Responding to %s: %s", req.MAC, err)
 			continue
 		}
-		Log("ProxyDHCP", false, "Offering to boot %s", req.MAC)
 	}
 }
 
@@ -193,4 +195,42 @@ func dhcpOption(b []byte) (typ byte, val []byte, next []byte) {
 		return 255, nil, nil
 	}
 	return typ, b[2 : 2+l], b[2+l:]
+}
+
+func interfaceIP(ifIdx int) (net.IP, error) {
+	iface, err := net.InterfaceByIndex(ifIdx)
+	if err != nil {
+		return nil, err
+	}
+
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to find an IPv4 address to use, in the following order:
+	// global unicast (includes rfc1918), link-local unicast,
+	// loopback.
+	fs := [](func(net.IP) bool){
+		net.IP.IsGlobalUnicast,
+		net.IP.IsLinkLocalUnicast,
+		net.IP.IsLoopback,
+	}
+	for _, f := range fs {
+		for _, a := range addrs {
+			ipaddr, ok := a.(*net.IPNet)
+			if !ok {
+				continue
+			}
+			ip := ipaddr.IP.To4()
+			if ip == nil {
+				continue
+			}
+			if f(ip) {
+				return ip, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("interface %s has no usable unicast addresses", iface.Name)
 }

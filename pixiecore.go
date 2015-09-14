@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-//go:generate go-bindata -o pxelinux_autogen.go -prefix=pxelinux pxelinux
+//go:generate go-bindata -o pxelinux_autogen.go -prefix=pxelinux -ignore=README.md pxelinux
 
 var (
 	// I'm sort of giving you the option to change these ports here,
