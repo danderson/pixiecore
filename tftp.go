@@ -68,7 +68,12 @@ func transfer(addr net.Addr, req *RRQPacket, pxelinux []byte) {
 		pkt := []byte{0, 6}
 		pkt = append(pkt, fmt.Sprintf("blksize\x00%d\x00", req.BlockSize)...)
 		if err := TFTPData(conn, pkt, 0); err != nil {
-			Log("TFTP", false, "Transfer to %s failed: %s", addr, err)
+			// Some PXE ROMs seem to request a transfer with the tsize
+			// option to try and size a buffer, and immediately abort
+			// it on OACK. As such, we're going to declare this a
+			// debug-level error, because it seems part of a normal
+			// boot sequence.
+			Log("TFTP", true, "Transfer to %s failed: %s", addr, err)
 			return
 		}
 	}
@@ -91,6 +96,8 @@ func transfer(addr net.Addr, req *RRQPacket, pxelinux []byte) {
 		seq++
 		toTX = toTX[l:]
 	}
+
+	Log("TFTP", false, "Sent pxelinux to %s", addr)
 }
 
 func TFTPData(conn net.Conn, b []byte, seq uint16) error {
@@ -118,9 +125,8 @@ Tx:
 					return nil
 				}
 			case 5:
-				code := binary.BigEndian.Uint16(recv[2:4])
 				msg, _, _ := nullStr(recv[4:])
-				return fmt.Errorf("received error packet, code %d (%q)", code, msg)
+				return fmt.Errorf("client aborted transfer (%q)", msg)
 			}
 		}
 	}
