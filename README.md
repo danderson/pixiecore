@@ -47,6 +47,11 @@ pixiecore -kernel vmlinuz64 -initrd rootfs.gz,core.gz,modules64.gz
 That's it. Any machine that tries to netboot on this network will now
 boot into a TinyCore ramdisk.
 
+Notice that we passed multiple cpio archives to `-initrd`. All
+provided archives will be merged on boot to form the final
+ramdisk. This is quite handy for things like providing OEM
+configuration without having to respin the upstream initrd image.
+
 ### CoreOS
 
 Pixiecore was originally written as a component in an automated
