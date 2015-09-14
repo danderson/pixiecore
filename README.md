@@ -1,10 +1,12 @@
 # Pixiecore, PXE booting for people in a hurry
 
-> There once was a protocol called PXE,<br/>
-> Whose specification was overly tricksy.<br/>
-> A committee refined it<br/>
-> Into a big Turing tarpit,<br/>
-> And now you're using it to boot your PC.
+```
+There once was a protocol called PXE,
+Whose specification was overly tricksy.
+A committee refined it
+Into a big Turing tarpit,
+And now you're using it to boot your PC.
+```
 
 Booting a linux system over the network is quite tedious. You have to
 set up a TFTP server, configure your DHCP server to recognize PXE
