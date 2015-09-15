@@ -74,6 +74,19 @@ pixiecore -kernel coreos_production_pxe.vmlinuz -initrd coreos_production_pxe_im
 Notice that we're passing an extra commandline argument to make CoreOS
 automatically log in once it's booted.
 
+### Running in Docker
+
+Pixiecore is available as a Docker image called
+`danderson/pixiecore`. It's an automatic Docker Hub build that tracks
+the repository.
+
+Because Pixiecore needs to listen for DHCP traffic, it has to run with
+the host network stack.
+
+```shell
+sudo docker run -v .:/image --net=host danderson/pixiecore -kernel /image/coreos_production_pxe.vmlinuz -initrd /image/coreos_prodeuction_pxe_image.cpio.gz
+```
+
 ## How it works
 
 Pixiecore implements four different, but related protocols in one
