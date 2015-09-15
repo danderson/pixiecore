@@ -16,13 +16,13 @@ var (
 	// option ROM, so it's pretty pointless unless you'd playing
 	// packet rewriting tricks or doing simulations with packet
 	// generators.
-	portDHCP = flag.Int("dhcp-port", 67, "Port to listen on for DHCP requests")
-	portPXE  = flag.Int("pxe-port", 4011, "Port to listen on for PXE requests")
-	portTFTP = flag.Int("tftp-port", 69, "Port to listen on for TFTP requests")
-	portHTTP = flag.Int("http-port", 70, "Port to listen on for HTTP requests")
+	portDHCP = flag.Int("port-dhcp", 67, "Port to listen on for DHCP requests")
+	portPXE  = flag.Int("port-pxe", 4011, "Port to listen on for PXE requests")
+	portTFTP = flag.Int("port-tftp", 69, "Port to listen on for TFTP requests")
+	portHTTP = flag.Int("port-http", 70, "Port to listen on for HTTP requests")
 
-	kernelFile    = flag.String("kernel", "vmlinuz", "Path to the linux kernel file to boot")
-	initrdFile    = flag.String("initrd", "initrd", "Comma-separated list of initrds to pass to the kernel")
+	kernelFile    = flag.String("kernel", "", "Path to the linux kernel file to boot")
+	initrdFile    = flag.String("initrd", "", "Comma-separated list of initrds to pass to the kernel")
 	kernelCmdline = flag.String("cmdline", "", "Additional arguments for the kernel commandline")
 
 	debug = flag.Bool("debug", false, "Log more things that aren't directly related to booting a recognized client")
@@ -30,6 +30,17 @@ var (
 
 func main() {
 	flag.Parse()
+
+	if *kernelFile == "" {
+		flag.Usage()
+		fmt.Fprintf(os.Stderr, "\nERROR: Please provide a linux kernel to boot with -kernel.\n")
+		os.Exit(1)
+	}
+	if *initrdFile == "" {
+		flag.Usage()
+		fmt.Fprintf(os.Stderr, "\nERROR: Please provide an initrd to boot with -initrd.\n")
+		os.Exit(1)
+	}
 
 	pxelinux, err := Asset("lpxelinux.0")
 	if err != nil {
