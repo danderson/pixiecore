@@ -23,7 +23,9 @@ will netboot any PXE client that shows up on the network.
 Run the pixiecore binary, passing it a kernel and initrd, and
 optionally some extra kernel commandline arguments.
 
-Here's a couple of examples.
+Here's a couple of examples. If you feel like a screencast instead,
+there's a
+[very short demo](https://www.youtube.com/watch?v=xjdTOt5YDQM).
 
 ### Tiny Core Linux
 
