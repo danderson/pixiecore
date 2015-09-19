@@ -21,7 +21,7 @@ type DHCPPacket struct {
 	//HTTPServer string
 }
 
-func ServeProxyDHCP(port int) error {
+func ServeProxyDHCP(port int, booter Booter) error {
 	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err
@@ -46,6 +46,11 @@ func ServeProxyDHCP(port int) error {
 		req, err := ParseDHCP(buf[:n])
 		if err != nil {
 			Log("ProxyDHCP", true, "ParseDHCP: %s", err)
+			continue
+		}
+
+		if err = booter.ShouldBoot(req.MAC); err != nil {
+			Log("ProxyDHCP", true, "Not offering to boot %s: %s", req.MAC, err)
 			continue
 		}
 
