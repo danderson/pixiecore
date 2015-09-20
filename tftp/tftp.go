@@ -39,7 +39,7 @@ func Serve(port int, pxelinux []byte) error {
 		req, err := ParseRRQ(addr, buf[:n])
 		if err != nil {
 			Debug("TFTP", "ParseRRQ: %s", err)
-			conn.WriteTo(TFTPError(err), addr)
+			conn.WriteTo(mkError(err), addr)
 			continue
 		}
 
@@ -130,7 +130,8 @@ Tx:
 	return fmt.Errorf("timed out waiting for ACK #%d", seq)
 }
 
-func TFTPError(err error) []byte {
+// mkError constructs a TFTP ERROR packet.
+func mkError(err error) []byte {
 	s := err.Error()
 	b := make([]byte, len(s)+5)
 	b[1] = 5
