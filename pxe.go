@@ -12,11 +12,9 @@ import (
 type PXEPacket struct {
 	DHCPPacket
 	ClientIP net.IP
-	// The raw bytes of DHCP option 43 (PXE vendor options) from the
-	// request. We need to mirror these in the response, and since we
-	// don't care about the contents, we don't bother to parse it at
-	// all.
-	PXEVendorOption []byte
+	// The boot type requested by the client. We need to mirror this
+	// in the PXE reply.
+	BootType []byte
 
 	HTTPServer string
 }
@@ -98,7 +96,9 @@ func ReplyPXE(p *PXEPacket) []byte {
 	b.Write([]byte{97, 17, 0})
 	b.Write(p.GUID)
 	// Mirror the menu selection back at the client
-	b.Write(p.PXEVendorOption)
+	b.Write([]byte{43, 7, 71, 4})
+	b.Write(p.BootType)
+	b.WriteByte(255)
 	// Pxelinux path prefix, which makes pxelinux use HTTP for
 	// everything.
 	b.Write([]byte{210, byte(len(p.HTTPServer))})
@@ -130,7 +130,7 @@ func ParsePXE(b []byte) (req *PXEPacket, err error) {
 	// should not have random unrelated traffic on it, and if there
 	// is, the clients deserve everything they get.
 	if !bytes.Equal(b[236:240], dhcpMagic) {
-		return nil, fmt.Errorf("packet from %s is not a DHCP request", ret.MAC)
+		return nil, fmt.Errorf("packet from %s (%s) is not a DHCP request", ret.MAC, ret.ClientIP)
 	}
 
 	typ, val, opts := dhcpOption(b[240:])
@@ -138,19 +138,16 @@ func ParsePXE(b []byte) (req *PXEPacket, err error) {
 		switch typ {
 		case 43:
 			pxeTyp, pxeVal, val := dhcpOption(val)
-		pxeOptParse:
 			for pxeTyp != 255 {
 				if pxeTyp == 71 {
-					ret.PXEVendorOption = []byte{43, byte(len(pxeVal) + 3), 71, byte(len(pxeVal))}
-					ret.PXEVendorOption = append(ret.PXEVendorOption, pxeVal...)
-					ret.PXEVendorOption = append(ret.PXEVendorOption, 255)
-					break pxeOptParse
+					ret.BootType = pxeVal
+					break
 				}
 				pxeTyp, pxeVal, val = dhcpOption(val)
 			}
 		case 97:
 			if len(val) != 17 || val[0] != 0 {
-				return nil, fmt.Errorf("packet from %s has malformed option 97", ret.MAC)
+				return nil, fmt.Errorf("packet from %s (%s) has malformed option 97", ret.MAC, ret.ClientIP)
 			}
 			ret.GUID = val[1:]
 		}
@@ -158,10 +155,10 @@ func ParsePXE(b []byte) (req *PXEPacket, err error) {
 	}
 
 	if ret.GUID == nil {
-		return nil, fmt.Errorf("%s is not a PXE client", ret.MAC)
+		return nil, fmt.Errorf("%s (%s) is not a PXE client", ret.MAC, ret.ClientIP)
 	}
-	if ret.PXEVendorOption == nil {
-		return nil, fmt.Errorf("%s hasn't selected a menu option", ret.MAC)
+	if ret.BootType == nil {
+		return nil, fmt.Errorf("%s (%s) hasn't selected a menu option", ret.MAC, ret.ClientIP)
 	}
 
 	// Valid PXE request!
