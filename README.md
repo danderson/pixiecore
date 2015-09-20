@@ -93,7 +93,7 @@ _far_ easier to play with netbooting in your own software.
 
 To start Pixiecore in API mode, pass it the HTTP API endpoint through
 the `-api` flag. The endpoint you provide must implement the Pixiecore
-boot API, as described in the [API spec](README.api).
+boot API, as described in the [API spec](README.api.md).
 
 You can find a sample API server implementation in the `example`
 subdirectory. The code is not production-grade, but gives a short
