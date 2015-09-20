@@ -77,6 +77,19 @@ steers the booting machine through Pixiecore for the fetch, and lets
 Pixiecore verify that it's only proxying for URLs that the API server
 gave it, so it's not an open proxy on your remediation vlan.
 
+### Multiple calls
+
+Pixiecore in API mode is stateless. Due to the unique way that PXE
+works, the API server may receive multiple requests for a single
+machine boot. Unfortunately, there is no good way to reliably provide
+a 1:1 mapping between a machine boot and an API server request.
+
+If you want to implement "single-shot" boot behavior (i.e. "netboot
+this MAC once, then go back to ignoring it"), you'll need to add a
+signalling backchannel to the OS image, so that it signals your API
+server when it's booted. Responding only to the first request for a
+MAC address will not have the desired effect.
+
 ### Example responses
 
 Boot into CoreOS stable. **WARNING**: this example is **unsafe**,
