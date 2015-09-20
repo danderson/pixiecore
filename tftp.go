@@ -32,18 +32,18 @@ func ServeTFTP(port int, pxelinux []byte) error {
 		return err
 	}
 
-	Log("TFTP", false, "Listening on port %d", port)
+	Log("TFTP", "Listening on port %d", port)
 	buf := make([]byte, 512)
 	for {
 		n, addr, err := conn.ReadFrom(buf)
 		if err != nil {
-			Log("TFTP", false, "Reading from socket: %s", err)
+			Log("TFTP", "Reading from socket: %s", err)
 			continue
 		}
 
 		req, err := ParseRRQ(addr, buf[:n])
 		if err != nil {
-			Log("TFTP", true, "ParseRRQ: %s", err)
+			Debug("TFTP", "ParseRRQ: %s", err)
 			conn.WriteTo(TFTPError(err), addr)
 			continue
 		}
@@ -55,7 +55,7 @@ func ServeTFTP(port int, pxelinux []byte) error {
 func transfer(addr net.Addr, req *RRQPacket, pxelinux []byte) {
 	conn, err := net.Dial("udp4", addr.String())
 	if err != nil {
-		Log("TFTP", false, "Couldn't set up TFTP socket for %s: %s", addr, err)
+		Log("TFTP", "Couldn't set up TFTP socket for %s: %s", addr, err)
 		return
 	}
 	defer conn.Close()
@@ -73,7 +73,7 @@ func transfer(addr net.Addr, req *RRQPacket, pxelinux []byte) {
 			// it on OACK. As such, we're going to declare this a
 			// debug-level error, because it seems part of a normal
 			// boot sequence.
-			Log("TFTP", true, "Transfer to %s failed: %s", addr, err)
+			Debug("TFTP", "Transfer to %s failed: %s", addr, err)
 			return
 		}
 	}
@@ -90,14 +90,14 @@ func transfer(addr net.Addr, req *RRQPacket, pxelinux []byte) {
 		}
 		copy(buf[4:], toTX[:l])
 		if err = TFTPData(conn, buf[:l+4], seq); err != nil {
-			Log("TFTP", false, "Transfer to %s failed: %s", addr, err)
+			Log("TFTP", "Transfer to %s failed: %s", addr, err)
 			return
 		}
 		seq++
 		toTX = toTX[l:]
 	}
 
-	Log("TFTP", false, "Sent pxelinux to %s", addr)
+	Log("TFTP", "Sent pxelinux to %s", addr)
 }
 
 func TFTPData(conn net.Conn, b []byte, seq uint16) error {

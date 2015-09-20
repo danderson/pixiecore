@@ -31,12 +31,12 @@ func ServeProxyDHCP(port int, booter Booter) error {
 		return err
 	}
 
-	Log("ProxyDHCP", false, "Listening on port %d", port)
+	Log("ProxyDHCP", "Listening on port %d", port)
 	buf := make([]byte, 1024)
 	for {
 		n, msg, addr, err := l.ReadFrom(buf)
 		if err != nil {
-			Log("ProxyDHCP", false, "Error reading from socket: %s", err)
+			Log("ProxyDHCP", "Error reading from socket: %s", err)
 			continue
 		}
 
@@ -45,26 +45,26 @@ func ServeProxyDHCP(port int, booter Booter) error {
 
 		req, err := ParseDHCP(buf[:n])
 		if err != nil {
-			Log("ProxyDHCP", true, "ParseDHCP: %s", err)
+			Debug("ProxyDHCP", "ParseDHCP: %s", err)
 			continue
 		}
 
 		if err = booter.ShouldBoot(req.MAC); err != nil {
-			Log("ProxyDHCP", true, "Not offering to boot %s: %s", req.MAC, err)
+			Debug("ProxyDHCP", "Not offering to boot %s: %s", req.MAC, err)
 			continue
 		}
 
 		req.ServerIP, err = interfaceIP(msg.IfIndex)
 		if err != nil {
-			Log("ProxyDHCP", false, "Couldn't find an IP address to use to reply to %s: %s", req.MAC, err)
+			Log("ProxyDHCP", "Couldn't find an IP address to use to reply to %s: %s", req.MAC, err)
 			continue
 		}
 
-		Log("ProxyDHCP", false, "Offering to boot %s (via %s)", req.MAC, req.ServerIP)
+		Log("ProxyDHCP", "Offering to boot %s (via %s)", req.MAC, req.ServerIP)
 		if _, err := l.WriteTo(OfferDHCP(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
 		}, udpAddr); err != nil {
-			Log("ProxyDHCP", false, "Responding to %s: %s", req.MAC, err)
+			Log("ProxyDHCP", "Responding to %s: %s", req.MAC, err)
 			continue
 		}
 	}

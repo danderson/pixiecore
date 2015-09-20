@@ -22,6 +22,10 @@ func RecordLogs(debug bool) {
 	}
 }
 
-func Log(subsystem string, debug bool, msg string, args ...interface{}) {
-	logCh <- LogEntry{subsystem, debug, fmt.Sprintf(msg, args...)}
+func Log(subsystem string, msg string, args ...interface{}) {
+	logCh <- LogEntry{subsystem, false, fmt.Sprintf(msg, args...)}
+}
+
+func Debug(subsystem string, msg string, args ...interface{}) {
+	logCh <- LogEntry{subsystem, true, fmt.Sprintf(msg, args...)}
 }

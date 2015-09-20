@@ -27,18 +27,18 @@ func ServePXE(pxePort, httpPort int) error {
 		return err
 	}
 
-	Log("PXE", false, "Listening on port %d", pxePort)
+	Log("PXE", "Listening on port %d", pxePort)
 	buf := make([]byte, 1024)
 	for {
 		n, msg, addr, err := l.ReadFrom(buf)
 		if err != nil {
-			Log("PXE", false, "Error reading from socket: %s", err)
+			Log("PXE", "Error reading from socket: %s", err)
 			continue
 		}
 
 		req, err := ParsePXE(buf[:n])
 		if err != nil {
-			Log("PXE", true, "ParsePXE: %s", err)
+			Debug("PXE", "ParsePXE: %s", err)
 			continue
 		}
 
@@ -46,12 +46,12 @@ func ServePXE(pxePort, httpPort int) error {
 		req.ServerIP, err = interfaceIP(msg.IfIndex)
 		req.HTTPServer = fmt.Sprintf("http://%s:%d/", req.ServerIP, httpPort)
 
-		Log("PXE", false, "Chainloading %s to pxelinux (via %s)", req.MAC, req.ServerIP)
+		Log("PXE", "Chainloading %s to pxelinux (via %s)", req.MAC, req.ServerIP)
 
 		if _, err := l.WriteTo(ReplyPXE(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
 		}, addr); err != nil {
-			Log("PXE", false, "Responding to %s: %s", req.MAC, err)
+			Log("PXE", "Responding to %s: %s", req.MAC, err)
 			continue
 		}
 	}
