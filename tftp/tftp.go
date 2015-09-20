@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"time"
@@ -19,16 +20,17 @@ type rrq struct {
 var Log = func(string, ...interface{}) {}
 var Debug = func(string, ...interface{}) {}
 
-func Serve(port int, pxelinux []byte) error {
-	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%d", port))
-	if err != nil {
-		return err
-	}
+// A Handler provides the bytes for a file.
+type Handler func(path string, clientAddr net.Addr) (io.ReadCloser, error)
 
-	Log("TFTP", "Listening on port %d", port)
+// Serve accepts incoming TFTP read requests on the listener l,
+// creating a new service goroutine for each. The service goroutines
+// use handler to get a byte stream and send it to the client.
+func Serve(l net.PacketConn, handler Handler) {
+	Log("TFTP", "Listening on %s", l.LocalAddr())
 	buf := make([]byte, 512)
 	for {
-		n, addr, err := conn.ReadFrom(buf)
+		n, addr, err := l.ReadFrom(buf)
 		if err != nil {
 			Log("TFTP", "Reading from socket: %s", err)
 			continue
@@ -37,22 +39,41 @@ func Serve(port int, pxelinux []byte) error {
 		req, err := parseRRQ(addr, buf[:n])
 		if err != nil {
 			Debug("TFTP", "parseRRQ: %s", err)
-			conn.WriteTo(mkError(err), addr)
+			l.WriteTo(mkError(err), addr)
 			continue
 		}
 
-		go transfer(addr, req, pxelinux)
+		go transfer(addr, req, handler)
 	}
 }
 
+// ListenAndServe listens on the given address/family and then calls
+// Serve with handler to handle incoming requests.
+func ListenAndServe(family, addr string, handler Handler) error {
+	l, err := net.ListenPacket(family, addr)
+	if err != nil {
+		return err
+	}
+	Serve(l, handler)
+	return nil
+}
+
 // transfer handles a full TFTP transaction with a client.
-func transfer(addr net.Addr, req *rrq, pxelinux []byte) {
+func transfer(addr net.Addr, req *rrq, handler Handler) {
 	conn, err := net.Dial("udp4", addr.String())
 	if err != nil {
 		Log("TFTP", "Couldn't set up TFTP socket for %s: %s", addr, err)
 		return
 	}
 	defer conn.Close()
+
+	f, err := handler(req.Filename, addr)
+	if err != nil {
+		Debug("TFTP", "Error getting bytes for %q: %s", req.Filename, err)
+		conn.Write(mkError(err))
+		return
+	}
+	defer f.Close()
 
 	bsize := 512
 	if req.BlockSize > 0 {
@@ -72,26 +93,28 @@ func transfer(addr net.Addr, req *rrq, pxelinux []byte) {
 		}
 	}
 
-	toTX := pxelinux
 	seq := uint16(1)
 	buf := make([]byte, bsize+4)
 	buf[1] = 3
-	for len(toTX) > 0 {
+	for {
 		binary.BigEndian.PutUint16(buf[2:4], seq)
-		l := len(toTX)
-		if l > bsize {
-			l = bsize
+		n, err := io.ReadFull(f, buf[4:])
+		if err != nil && err != io.ErrUnexpectedEOF {
+			Log("TFTP", "Transfer to %s failed: %s", addr, err)
+			conn.Write(mkError(err))
+			return
 		}
-		copy(buf[4:], toTX[:l])
-		if err = sendPacket(conn, buf[:l+4], seq); err != nil {
+		if err = sendPacket(conn, buf[:n+4], seq); err != nil {
 			Log("TFTP", "Transfer to %s failed: %s", addr, err)
 			return
 		}
 		seq++
-		toTX = toTX[l:]
+		if n < bsize {
+			// Transfer complete, we're done.
+			Log("TFTP", "Sent %q to %s", req.Filename, addr)
+			return
+		}
 	}
-
-	Log("TFTP", "Sent pxelinux to %s", addr)
 }
 
 // sendPacket sends one TFTP packet to the client and waits for an ack.

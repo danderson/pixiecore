@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -95,7 +100,9 @@ func main() {
 		log.Fatalln(ServePXE(*portPXE, *portHTTP))
 	}()
 	go func() {
-		log.Fatalln(tftp.Serve(*portTFTP, pxelinux))
+		log.Fatalln(tftp.ListenAndServe("udp4", ":"+strconv.Itoa(*portTFTP), func(string, net.Addr) (io.ReadCloser, error) {
+			return ioutil.NopCloser(bytes.NewBuffer(pxelinux)), nil
+		}))
 	}()
 	go func() {
 		log.Fatalln(ServeHTTP(*portHTTP, booter, ldlinux))
