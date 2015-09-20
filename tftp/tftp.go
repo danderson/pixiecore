@@ -9,15 +9,7 @@ import (
 	"time"
 )
 
-const (
-	ipv4overhead = 28
-
-	optBlockSize    = "blksize"
-	optTimeout      = "timeout"
-	optTransferSize = "tsize"
-
-	numRetries = 5
-)
+const numRetries = 5
 
 type RRQPacket struct {
 	Filename string
