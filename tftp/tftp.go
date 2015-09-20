@@ -12,9 +12,7 @@ import (
 const numRetries = 5
 
 type rrq struct {
-	Filename string
-
-	FileSize  int
+	Filename  string
 	BlockSize int
 }
 
