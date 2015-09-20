@@ -48,6 +48,10 @@ func ServePXE(pxePort, httpPort int) error {
 		}
 
 		req.ServerIP, err = interfaceIP(msg.IfIndex)
+		if err != nil {
+			Log("PXE", "Couldn't find an IP address to use to reply to %s: %s", req.MAC, err)
+			continue
+		}
 		req.HTTPServer = fmt.Sprintf("http://%s:%d/", req.ServerIP, httpPort)
 
 		Log("PXE", "Chainloading %s to pxelinux (via %s)", req.MAC, req.ServerIP)
