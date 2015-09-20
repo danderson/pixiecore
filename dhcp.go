@@ -18,7 +18,6 @@ type DHCPPacket struct {
 	GUID []byte
 
 	ServerIP net.IP
-	//HTTPServer string
 }
 
 func ServeProxyDHCP(port int, booter Booter) error {
