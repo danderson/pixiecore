@@ -105,6 +105,7 @@ func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
+
 	w.Header().Set("Content-Type", "application/octet-stream")
 	written, err := io.Copy(w, f)
 	if err != nil {
