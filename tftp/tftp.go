@@ -62,7 +62,7 @@ func transfer(addr net.Addr, req *rrq, pxelinux []byte) {
 		bsize = req.BlockSize
 		pkt := []byte{0, 6}
 		pkt = append(pkt, fmt.Sprintf("blksize\x00%d\x00", req.BlockSize)...)
-		if err := TFTPData(conn, pkt, 0); err != nil {
+		if err := sendPacket(conn, pkt, 0); err != nil {
 			// Some PXE ROMs seem to request a transfer with the tsize
 			// option to try and size a buffer, and immediately abort
 			// it on OACK. As such, we're going to declare this a
@@ -84,7 +84,7 @@ func transfer(addr net.Addr, req *rrq, pxelinux []byte) {
 			l = bsize
 		}
 		copy(buf[4:], toTX[:l])
-		if err = TFTPData(conn, buf[:l+4], seq); err != nil {
+		if err = sendPacket(conn, buf[:l+4], seq); err != nil {
 			Log("TFTP", "Transfer to %s failed: %s", addr, err)
 			return
 		}
@@ -95,7 +95,8 @@ func transfer(addr net.Addr, req *rrq, pxelinux []byte) {
 	Log("TFTP", "Sent pxelinux to %s", addr)
 }
 
-func TFTPData(conn net.Conn, b []byte, seq uint16) error {
+// sendPacket sends one TFTP packet to the client and waits for an ack.
+func sendPacket(conn net.Conn, b []byte, seq uint16) error {
 Tx:
 	for try := 0; try < numRetries; try++ {
 		conn.Write(b)
