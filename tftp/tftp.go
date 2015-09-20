@@ -11,7 +11,7 @@ import (
 
 const numRetries = 5
 
-type RRQPacket struct {
+type rrq struct {
 	Filename string
 
 	FileSize  int
@@ -47,7 +47,7 @@ func Serve(port int, pxelinux []byte) error {
 	}
 }
 
-func transfer(addr net.Addr, req *RRQPacket, pxelinux []byte) {
+func transfer(addr net.Addr, req *rrq, pxelinux []byte) {
 	conn, err := net.Dial("udp4", addr.String())
 	if err != nil {
 		Log("TFTP", "Couldn't set up TFTP socket for %s: %s", addr, err)
@@ -137,7 +137,7 @@ func TFTPError(err error) []byte {
 	return b
 }
 
-func ParseRRQ(addr net.Addr, b []byte) (req *RRQPacket, err error) {
+func ParseRRQ(addr net.Addr, b []byte) (req *rrq, err error) {
 	// Smallest a useful TFTP packet can be is 6 bytes: 2b opcode, 1b
 	// filename, 1b null, 1b mode, 1b null.
 	if len(b) < 6 {
@@ -161,7 +161,7 @@ func ParseRRQ(addr net.Addr, b []byte) (req *RRQPacket, err error) {
 		return nil, fmt.Errorf("%s requested unsupported transfer mode %q", addr, mode)
 	}
 
-	req = &RRQPacket{
+	req = &rrq{
 		Filename: fname,
 	}
 
