@@ -100,6 +100,8 @@ func main() {
 		log.Fatalln(ServePXE(*portPXE, *portHTTP))
 	}()
 	go func() {
+		tftp.Log = Log
+		tftp.Debug = Debug
 		log.Fatalln(tftp.ListenAndServe("udp4", ":"+strconv.Itoa(*portTFTP), func(string, net.Addr) (io.ReadCloser, error) {
 			return ioutil.NopCloser(bytes.NewBuffer(pxelinux)), nil
 		}))
