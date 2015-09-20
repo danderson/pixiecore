@@ -50,28 +50,32 @@ This is done for two reasons: one, the booting machine may be in a
 restricted network environment. For example, you may have a policy
 that machines must do 802.1x authentication to get full network
 access, else they get dropped on a "remediation" vlan. Proxying the
-downloads through Pixiecore means you need only one set of ACLs for
-netbooting regardless of _what_ you're booting.
+downloads through Pixiecore means you need only one set of edge ACLs
+on the remediation vlan, regardless of _what_ you're booting: just
+whitelist Pixiecore's IP:port, and from there your API server can boot
+whatever you want.
 
 Second, the booting machine is limited to using HTTP to fetch
-images. This is probably okay (though not ideal, admittedly) on the
-machine's local ethernet broadcast domain, but is definitely not okay
-for retrieval over the internet. Proxying through Pixiecore means that
-your API server can provide HTTPS URLs, and everything but the very
-last mile between Pixiecore and the machine will be secure.
+images. This is probably okay (though not ideal, admittedly - but then
+again, PXE forces us to TFTP anyway, so we're already screwed for
+security) on the machine's local ethernet broadcast domain, but is
+definitely not okay for retrieval over the internet. Proxying through
+Pixiecore means that your API server can provide HTTPS URLs, and
+everything but the very last mile between Pixiecore and the machine
+will be secure.
 
 The exact URLs visible to the booting machine are an implementation
 detail of Pixiecore and are subject to breaking change at any
 time.
 
-However, for the curious: Pixiecore translates API server provided
-URLs into `<pixiecore HTTP endpoint>/f/<signed URL blob>`. The signed
-URL blob is a base64-encoding of running NaCL's secretbox
-authenticated encryption function over the server-provided URL, using
-an ephemeral key generated when Pixiecore starts. This steers the
-booting machine through Pixiecore for the fetch, and lets Pixiecore
-verify that it's only proxying for URLs that the API server gave it,
-so it's not an open proxy on your remediation vlan.
+For the curious, the current implementation translates API server
+provided URLs into `<pixiecore HTTP endpoint>/f/<signed URL
+blob>`. The signed URL blob is a base64-encoding of running NaCL's
+secretbox authenticated encryption function over the server-provided
+URL, using an ephemeral key generated when Pixiecore starts. This
+steers the booting machine through Pixiecore for the fetch, and lets
+Pixiecore verify that it's only proxying for URLs that the API server
+gave it, so it's not an open proxy on your remediation vlan.
 
 ### Example responses
 
