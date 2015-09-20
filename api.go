@@ -30,6 +30,7 @@ type BootSpec struct {
 	Cmdline string
 }
 
+// A Booter tells Pixiecore whether/how to boot machines.
 type Booter interface {
 	// The given MAC address is attempting to netboot. Should
 	// Pixiecore offer to help?
@@ -45,6 +46,9 @@ type Booter interface {
 	File(id string) (io.ReadCloser, string, error)
 }
 
+// RemoteBooter gets a BootSpec from a remote server over HTTP.
+//
+// The API is described in README.api.md
 func RemoteBooter(url string, timeout time.Duration) (Booter, error) {
 	if !strings.HasSuffix(url, "/") {
 		url += "/"
@@ -184,6 +188,7 @@ func (b *remoteBooter) getURL(signed string) (string, error) {
 	return string(out), nil
 }
 
+// StaticBooter boots all machines with local files.
 func StaticBooter(kernelPath string, initrdPaths []string, cmdline string) Booter {
 	ret := &staticBooter{
 		kernelPath:  kernelPath,
