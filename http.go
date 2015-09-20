@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -37,26 +36,6 @@ func (b blobHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Write(b)
 	Log("HTTP", "Sent %s to %s (%d bytes)", r.URL, r.RemoteAddr, len(b))
-}
-
-type fileHandler string
-
-func (f fileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h, err := os.Open(string(f))
-	if err != nil {
-		Log("HTTP", "%s: %s", r.URL, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer h.Close()
-	Debug("HTTP", "Starting send of %s to %s", r.URL, r.RemoteAddr)
-	n, err := io.Copy(w, h)
-	if err != nil {
-		Log("HTTP", "%s: %s", r.URL, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	Log("HTTP", "Sent %s to %s (%d bytes)", r.URL, r.RemoteAddr, n)
 }
 
 type httpServer struct {
