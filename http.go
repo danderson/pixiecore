@@ -49,13 +49,13 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 	errStr := fmt.Sprintf("%s requested a pxelinux config from URL %q, which does not include a MAC address", r.RemoteAddr, r.URL)
 	if !strings.HasPrefix(macStr, "01-") {
 		Debug("HTTP", errStr)
-		http.Error(w, errStr, http.StatusBadRequest)
+		http.Error(w, "Missing MAC address in request", http.StatusBadRequest)
 		return
 	}
 	mac, err := net.ParseMAC(macStr[3:])
 	if err != nil {
 		Debug("HTTP", errStr)
-		http.Error(w, errStr, http.StatusBadRequest)
+		http.Error(w, "Malformed MAC address in request", http.StatusBadRequest)
 		return
 	}
 
@@ -65,11 +65,14 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 		// we shouldn't be netbooting. So, give it a config that tells
 		// pxelinux to shut down PXE booting and continue with the
 		// next local boot method.
-		w.Write([]byte(bootFromDisk))
 		Debug("HTTP", "Telling pxelinux on %s (%s) to boot from disk because of API server verdict: %s", mac, r.RemoteAddr, err)
+		w.Write([]byte(bootFromDisk))
 		return
 	}
 
+	// The file IDs can be arbitrary blobs that make sense to the
+	// Booter, but pxelinux speaks URL, so we need to encode the
+	// blobs.
 	spec.Kernel = "f/" + base64.URLEncoding.EncodeToString([]byte(spec.Kernel))
 	for i := range spec.Initrd {
 		spec.Initrd[i] = "f/" + base64.URLEncoding.EncodeToString([]byte(spec.Initrd[i]))
@@ -83,7 +86,6 @@ LINUX %s
 APPEND initrd=%s %s
 `, strings.Replace(limerick, "\n", "\nSAY ", -1), spec.Kernel, strings.Join(spec.Initrd, ","), spec.Cmdline)
 
-	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(cfg))
 	Log("HTTP", "Sent pxelinux config to %s (%s)", mac, r.RemoteAddr)
 }
