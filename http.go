@@ -19,6 +19,9 @@ DEFAULT local
 LABEL local
 LOCALBOOT 0
 `
+
+// A silly limerick displayed while pxelinux loads big OS
+// images. Possibly the most important piece of this program.
 const limerick = `
 	        There once was a protocol called PXE,
 	        Whose specification was overly tricksy.
