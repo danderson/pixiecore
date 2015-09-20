@@ -22,6 +22,7 @@ func ServePXE(pxePort, httpPort int) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	l := ipv4.NewPacketConn(conn)
 	if err = l.SetControlMessage(ipv4.FlagInterface, true); err != nil {
 		return err
