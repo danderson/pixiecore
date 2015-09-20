@@ -1,4 +1,4 @@
-package main
+package tftp
 
 import (
 	"bytes"
@@ -26,7 +26,10 @@ type RRQPacket struct {
 	BlockSize int
 }
 
-func ServeTFTP(port int, pxelinux []byte) error {
+var Log = func(string, ...interface{}) {}
+var Debug = func(string, ...interface{}) {}
+
+func Serve(port int, pxelinux []byte) error {
 	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err

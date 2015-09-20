@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/danderson/pixiecore/tftp"
 )
 
 //go:generate go-bindata -o pxelinux_autogen.go -prefix=pxelinux -ignore=README.md pxelinux
@@ -93,7 +95,7 @@ func main() {
 		log.Fatalln(ServePXE(*portPXE, *portHTTP))
 	}()
 	go func() {
-		log.Fatalln(ServeTFTP(*portTFTP, pxelinux))
+		log.Fatalln(tftp.Serve(*portTFTP, pxelinux))
 	}()
 	go func() {
 		log.Fatalln(ServeHTTP(*portHTTP, booter, ldlinux))
