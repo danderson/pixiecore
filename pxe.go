@@ -42,7 +42,6 @@ func ServePXE(pxePort, httpPort int) error {
 			continue
 		}
 
-		// TODO: figure out the correct IP
 		req.ServerIP, err = interfaceIP(msg.IfIndex)
 		req.HTTPServer = fmt.Sprintf("http://%s:%d/", req.ServerIP, httpPort)
 
