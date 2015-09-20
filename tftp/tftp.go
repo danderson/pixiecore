@@ -1,3 +1,10 @@
+/* Package tftp provides a read-only TFTP server implementation.
+
+ListenAndServe starts a TFTP server with a given address and handler.
+
+	log.Fatal(tftp.ListenAndServe("udp4", ":69", fooHandler))
+
+*/
 package tftp
 
 import (
