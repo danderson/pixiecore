@@ -12,6 +12,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strconv"
 	"time"
@@ -24,7 +25,13 @@ type rrq struct {
 	BlockSize int
 }
 
-var Log = func(string, ...interface{}) {}
+// Log is called with messages of general interest.
+var Log = func(msg string, args ...interface{}) {
+	log.Printf(msg, args)
+}
+
+// Debug is called with messages relevant to debugging or tracing the
+// behavior of the TFTP server.
 var Debug = func(string, ...interface{}) {}
 
 // A Handler provides the bytes for a file.
