@@ -54,7 +54,7 @@ func ServePXE(pxePort, httpPort int) error {
 		}
 		req.HTTPServer = fmt.Sprintf("http://%s:%d/", req.ServerIP, httpPort)
 
-		Log("PXE", "Chainloading %s to pxelinux (via %s)", req.MAC, req.ServerIP)
+		Log("PXE", "Chainloading %s (%s) to pxelinux (via %s)", req.MAC, req.ClientIP, req.ServerIP)
 
 		if _, err := l.WriteTo(ReplyPXE(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
@@ -66,44 +66,51 @@ func ServePXE(pxePort, httpPort int) error {
 }
 
 func ReplyPXE(p *PXEPacket) []byte {
-	r := make([]byte, 236)
-	r[0] = 2 // boot reply
-	r[1] = 1 // PHY = ethernet
-	r[2] = 6 // MAC address length
-	copy(r[4:], p.TID)
-	r[10] = 0x80 // speak broadcast
-	copy(r[16:], p.ClientIP)
-	copy(r[20:], p.ServerIP)
-	copy(r[28:], p.MAC)
+	var b bytes.Buffer
+
+	// Fixed length BOOTP response
+	var bootp [236]byte
+	bootp[0] = 2     // BOOTP reply
+	bootp[1] = 1     // PHY = ethernet
+	bootp[2] = 6     // Hardware address length
+	bootp[10] = 0x80 // Please speak broadcast
+	copy(bootp[4:], p.TID)
+	copy(bootp[16:], p.ClientIP)
+	copy(bootp[20:], p.ServerIP)
+	copy(bootp[28:], p.MAC)
 	// Boot file name. Our TFTP server unconditionally serves up
 	// pxelinux no matter the name, so we just put something that
 	// looks nice in packet dumps.
-	copy(r[108:], "boot")
+	copy(bootp[108:], "boot")
+	b.Write(bootp[:])
 
 	// DHCP magic
-	r = append(r, dhcpMagic...)
-	// DHCPACK
-	r = append(r, 53, 1, 5)
+	b.Write(dhcpMagic)
+	// Type = DHCPACK
+	b.Write([]byte{53, 1, 5})
 	// Server ID
-	r = append(r, 54, 4)
-	r = append(r, p.ServerIP...)
+	b.Write([]byte{54, 4})
+	b.Write(p.ServerIP)
 	// Vendor class
-	r = append(r, 60, 9)
-	r = append(r, "PXEClient"...)
+	b.Write([]byte{60, 9})
+	b.WriteString("PXEClient")
 	// Client UUID
-	r = append(r, 97, 17, 0)
-	r = append(r, p.GUID...)
+	b.Write([]byte{97, 17, 0})
+	b.Write(p.GUID)
 	// Mirror the menu selection back at the client
-	r = append(r, p.PXEVendorOption...)
+	b.Write(p.PXEVendorOption)
 	// Pxelinux path prefix, which makes pxelinux use HTTP for
 	// everything.
-	r = append(r, 210, byte(len(p.HTTPServer)))
-	r = append(r, p.HTTPServer...)
+	b.Write([]byte{210, byte(len(p.HTTPServer))})
+	b.WriteString(p.HTTPServer)
+	// If boot fails, make pxelinux reboot after 5 seconds to try
+	// again.
+	b.Write([]byte{211, 4, 0, 0, 0, 5})
 
-	// Done.
-	r = append(r, 255)
+	// End DHCP options
+	b.WriteByte(255)
 
-	return r
+	return b.Bytes()
 }
 
 func ParsePXE(b []byte) (req *PXEPacket, err error) {
