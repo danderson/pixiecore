@@ -200,7 +200,8 @@ func parseRRQ(addr net.Addr, b []byte) (req *rrq, err error) {
 	return req, nil
 }
 
-func nullStr(b []byte) (string, []byte, bool) {
+// nullStr extracts a null-terminated string from the given bytes.
+func nullStr(b []byte) (str string, remaining []byte, ok bool) {
 	off := bytes.IndexByte(b, 0)
 	if off == -1 {
 		return "", nil, false
