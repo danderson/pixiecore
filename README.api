@@ -1,0 +1,108 @@
+# API server
+
+Pixiecore supports two modes of operation: static and API-driven.
+
+In static mode, you just pass it a -kernel and a -initrd, and
+Pixiecore will boot any PXE client that it sees.
+
+In API mode, requests made by PXE clients will be translated into
+calls to an HTTP API, essentially asking "Should I boot this client?
+If so, what should I boot it with?" This lets you implement fancy
+dynamic booting things, as well as construct per-machine commandlines
+and whatnot.
+
+## API specification
+
+Note that Pixiecore is the _client_ of this API. It's your job to
+implement it and point Pixiecore at the right URL prefix.
+
+The API consists of a single endpoint:
+`<apiserver-prefix>/v1/boot/<mac-addr>`. Pixiecore calls this endpoint
+to learn whether/how to boot a machine with a given MAC address.
+
+Any non-200 response from the server will cause Pixieboot to ignore
+the requesting machine.
+
+A 200 response will cause Pixiecore to boot the requesting machine. A
+200 response must come with a JSON object payload. Recognized keys
+are:
+
+- `kernel`: the URL to the kernel that should be booted.
+- `initrd`: a list of initrds that should be booted into. Linux will
+  flatten all initrds together into one filesystem image.
+- `cmdline` (optional): commandline parameters to pass into the
+  kernel.
+
+Malformed 200 responses will have the same result as a non-200
+response - Pixiecore will ignore the requesting machine.
+
+### Kernel and initrd URLs
+
+As described above, the kernel and initrds are specified as URLs,
+enabling you to host them as you please - you could even link directly
+to a distro's download links if you wanted.
+
+Pixiecore will not point booting machines directly at the given
+URLs. Instead, it will point the booting machines to a proxy URL on
+Pixiecore's HTTP server, and proxy the transfer.
+
+This is done for two reasons: one, the booting machine may be in a
+restricted network environment. For example, you may have a policy
+that machines must do 802.1x authentication to get full network
+access, else they get dropped on a "remediation" vlan. Proxying the
+downloads through Pixiecore means you need only one set of ACLs for
+netbooting regardless of _what_ you're booting.
+
+Second, the booting machine is limited to using HTTP to fetch
+images. This is probably okay (though not ideal, admittedly) on the
+machine's local ethernet broadcast domain, but is definitely not okay
+for retrieval over the internet. Proxying through Pixiecore means that
+your API server can provide HTTPS URLs, and everything but the very
+last mile between Pixiecore and the machine will be secure.
+
+The exact URLs visible to the booting machine are an implementation
+detail of Pixiecore and are subject to breaking change at any
+time.
+
+However, for the curious: Pixiecore translates API server provided
+URLs into `<pixiecore HTTP endpoint>/f/<signed URL blob>`. The signed
+URL blob is a base64-encoding of running NaCL's secretbox
+authenticated encryption function over the server-provided URL, using
+an ephemeral key generated when Pixiecore starts. This steers the
+booting machine through Pixiecore for the fetch, and lets Pixiecore
+verify that it's only proxying for URLs that the API server gave it,
+so it's not an open proxy on your remediation vlan.
+
+### Example responses
+
+Boot into CoreOS stable. **WARNING**: this example is **unsafe**,
+because the images are linked to over HTTP, and we're not doing GPG
+verification of the image signatures. This is an example only.
+
+```json
+{
+  "kernel": "http://stable.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz",
+  "initrd": ["http://stable.release.core-os.net/amd64-usr/current/coreos_production_pxe_image.cpio.gz"]
+}
+```
+
+Boot from API server provided files. Pixiecore will grab kernel and
+initrd from `<apiserver-prefix>/v1/file/kernel` and
+`<apiserver-prefix>/v1/file/initrd.[01]`.
+
+```json
+{
+  "kernel": "/kernel",
+  "initrd": ["/initrd.0", "/initrd.1"]
+}
+```
+
+Boot from HTTPS, with extra commandline flags.
+
+```json
+{
+  "kernel": "https://files.local/kernel",
+  "initrd": ["https://files.local/initrd"],
+  "cmdline": "selinux=1"
+}
+```
