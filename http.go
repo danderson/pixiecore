@@ -29,23 +29,23 @@ const limerick = `
 	        And now you're using it to boot your PC.
 `
 
-type blobHandler []byte
-
-func (b blobHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	Debug("HTTP", "Starting send of %s to %s (%d bytes)", r.URL, r.RemoteAddr, len(b))
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(b)
-	Log("HTTP", "Sent %s to %s (%d bytes)", r.URL, r.RemoteAddr, len(b))
+type httpServer struct {
+	booter  Booter
+	ldlinux []byte
+	key     [32]byte // to sign URLs
 }
 
-type httpServer struct {
-	booter Booter
-	key    [32]byte // to sign URLs
+func (s *httpServer) Ldlinux(w http.ResponseWriter, r *http.Request) {
+	Debug("HTTP", "Starting send of ldlinux.c32 to %s (%d bytes)", r.RemoteAddr, len(s.ldlinux))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(s.ldlinux)
+	Log("HTTP", "Sent ldlinux.c32 to %s (%d bytes)", r.RemoteAddr, len(s.ldlinux))
 }
 
 func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
-	macStr := filepath.Base(r.URL.Path)
+	w.Header().Set("Content-Type", "text/plain")
 
+	macStr := filepath.Base(r.URL.Path)
 	errStr := fmt.Sprintf("%s requested a pxelinux config from URL %q, which does not include a MAC address", r.RemoteAddr, r.URL)
 	if !strings.HasPrefix(macStr, "01-") {
 		Debug("HTTP", errStr)
@@ -113,15 +113,15 @@ func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
 }
 
 func ServeHTTP(port int, booter Booter, ldlinux []byte) error {
-	http.Handle("/ldlinux.c32", blobHandler(ldlinux))
-
 	s := &httpServer{
-		booter: booter,
+		booter:  booter,
+		ldlinux: ldlinux,
 	}
 	if _, err := io.ReadFull(rand.Reader, s.key[:]); err != nil {
 		return fmt.Errorf("cannot initialize ephemeral signing key: %s", err)
 	}
 
+	http.HandleFunc("/ldlinux.c32", s.Ldlinux)
 	http.HandleFunc("/pxelinux.cfg/", s.PxelinuxConfig)
 	http.HandleFunc("/f/", s.File)
 
