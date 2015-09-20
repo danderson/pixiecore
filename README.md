@@ -15,10 +15,13 @@ boot, often fighting rubbish PXE ROM implementations.
 
 Pixiecore aims to simplify this process, by packing the whole process
 into a single binary that can cooperate with your network's existing
-DHCP server. Simply give Pixiecore a Linux kernel and initrd, and it
-will netboot any PXE client that shows up on the network.
+DHCP server.
 
-## Usage
+Pixiecore can be used either as a simple "just boot into this OS
+image" tool, or as a building block of a machine management system
+with its API mode.
+
+## Pixiecore in static mode ("I just want to boot 5 machines")
 
 Run the pixiecore binary, passing it a kernel and initrd, and
 optionally some extra kernel commandline arguments.
@@ -76,7 +79,28 @@ pixiecore -kernel coreos_production_pxe.vmlinuz -initrd coreos_production_pxe_im
 Notice that we're passing an extra commandline argument to make CoreOS
 automatically log in once it's booted.
 
-### Running in Docker
+## Pixiecore in API mode
+
+Think of Pixiecore in API mode as a "PXE to HTTP" translator. Whenever
+Pixiecore sees a machine trying to PXE boot, it will ask a remote HTTP
+API (which you implement) what to do. The API server can tell
+Pixiecore to ignore the machine, or tell it to boot into a given
+kernel/initrd/commandline.
+
+Effectively, Pixiecore in API mode lets you pretend that your machines
+speak a simple JSON protocol when trying to netboot. This makes it
+_far_ easier to play with netbooting in your own software.
+
+To start Pixiecore in API mode, pass it the HTTP API endpoint through
+the `-api` flag. The endpoint you provide must implement the Pixiecore
+boot API, as described in the [API spec](README.api).
+
+You can find a sample API server implementation in the `example`
+subdirectory. The code is not production-grade, but gives a short
+illustration of how thte protocol works by reimplementing a subset of
+Pixiecore's static mode as an API server.
+
+## Running in Docker
 
 Pixiecore is available as a Docker image called
 `danderson/pixiecore`. It's an automatic Docker Hub build that tracks
