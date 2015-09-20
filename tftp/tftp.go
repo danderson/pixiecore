@@ -36,9 +36,9 @@ func Serve(port int, pxelinux []byte) error {
 			continue
 		}
 
-		req, err := ParseRRQ(addr, buf[:n])
+		req, err := parseRRQ(addr, buf[:n])
 		if err != nil {
-			Debug("TFTP", "ParseRRQ: %s", err)
+			Debug("TFTP", "parseRRQ: %s", err)
 			conn.WriteTo(mkError(err), addr)
 			continue
 		}
@@ -139,7 +139,8 @@ func mkError(err error) []byte {
 	return b
 }
 
-func ParseRRQ(addr net.Addr, b []byte) (req *rrq, err error) {
+// parseRRQ parses a raw TFTP packet into an rrq struct.
+func parseRRQ(addr net.Addr, b []byte) (req *rrq, err error) {
 	// Smallest a useful TFTP packet can be is 6 bytes: 2b opcode, 1b
 	// filename, 1b null, 1b mode, 1b null.
 	if len(b) < 6 {
