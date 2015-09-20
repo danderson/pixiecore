@@ -12,6 +12,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"strconv"
@@ -128,6 +129,13 @@ func transfer(addr net.Addr, req *rrq, handler Handler) {
 			Log("Sent %q to %s", req.Filename, addr)
 			return
 		}
+	}
+}
+
+// Blob returns a handler that serves b for all paths and clients.
+func Blob(b []byte) Handler {
+	return func(string, net.Addr) (io.ReadCloser, error) {
+		return ioutil.NopCloser(bytes.NewBuffer(b)), nil
 	}
 }
 

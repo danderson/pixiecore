@@ -1,14 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
-	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -102,9 +98,7 @@ func main() {
 	go func() {
 		tftp.Log = func(msg string, args ...interface{}) { Log("TFTP", msg, args...) }
 		tftp.Debug = func(msg string, args ...interface{}) { Debug("TFTP", msg, args...) }
-		log.Fatalln(tftp.ListenAndServe("udp4", ":"+strconv.Itoa(*portTFTP), func(string, net.Addr) (io.ReadCloser, error) {
-			return ioutil.NopCloser(bytes.NewBuffer(pxelinux)), nil
-		}))
+		log.Fatalln(tftp.ListenAndServe("udp4", ":"+strconv.Itoa(*portTFTP), tftp.Blob(pxelinux)))
 	}()
 	go func() {
 		log.Fatalln(ServeHTTP(*portHTTP, booter, ldlinux))
