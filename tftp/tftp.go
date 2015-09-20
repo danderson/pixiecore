@@ -47,6 +47,7 @@ func Serve(port int, pxelinux []byte) error {
 	}
 }
 
+// transfer handles a full TFTP transaction with a client.
 func transfer(addr net.Addr, req *rrq, pxelinux []byte) {
 	conn, err := net.Dial("udp4", addr.String())
 	if err != nil {
