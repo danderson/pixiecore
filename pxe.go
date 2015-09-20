@@ -11,8 +11,12 @@ import (
 
 type PXEPacket struct {
 	DHCPPacket
-	ClientIP        net.IP
-	PXEVendorOption []byte // The bytes for DHCP option 43, for the response.
+	ClientIP net.IP
+	// The raw bytes of DHCP option 43 (PXE vendor options) from the
+	// request. We need to mirror these in the response, and since we
+	// don't care about the contents, we don't bother to parse it at
+	// all.
+	PXEVendorOption []byte
 
 	HTTPServer string
 }
