@@ -41,18 +41,18 @@ type Handler func(path string, clientAddr net.Addr) (io.ReadCloser, error)
 // creating a new service goroutine for each. The service goroutines
 // use handler to get a byte stream and send it to the client.
 func Serve(l net.PacketConn, handler Handler) {
-	Log("TFTP", "Listening on %s", l.LocalAddr())
+	Log("Listening on %s", l.LocalAddr())
 	buf := make([]byte, 512)
 	for {
 		n, addr, err := l.ReadFrom(buf)
 		if err != nil {
-			Log("TFTP", "Reading from socket: %s", err)
+			Log("Reading from socket: %s", err)
 			continue
 		}
 
 		req, err := parseRRQ(addr, buf[:n])
 		if err != nil {
-			Debug("TFTP", "parseRRQ: %s", err)
+			Debug("parseRRQ: %s", err)
 			l.WriteTo(mkError(err), addr)
 			continue
 		}
@@ -76,14 +76,14 @@ func ListenAndServe(family, addr string, handler Handler) error {
 func transfer(addr net.Addr, req *rrq, handler Handler) {
 	conn, err := net.Dial("udp4", addr.String())
 	if err != nil {
-		Log("TFTP", "Couldn't set up TFTP socket for %s: %s", addr, err)
+		Log("Couldn't set up TFTP socket for %s: %s", addr, err)
 		return
 	}
 	defer conn.Close()
 
 	f, err := handler(req.Filename, addr)
 	if err != nil {
-		Debug("TFTP", "Error getting bytes for %q: %s", req.Filename, err)
+		Debug("Error getting bytes for %q: %s", req.Filename, err)
 		conn.Write(mkError(err))
 		return
 	}
@@ -102,7 +102,7 @@ func transfer(addr net.Addr, req *rrq, handler Handler) {
 			// it on OACK. As such, we're going to declare this a
 			// debug-level error, because it seems part of a normal
 			// boot sequence.
-			Debug("TFTP", "Transfer to %s failed: %s", addr, err)
+			Debug("Transfer to %s failed: %s", addr, err)
 			return
 		}
 	}
@@ -114,18 +114,18 @@ func transfer(addr net.Addr, req *rrq, handler Handler) {
 		binary.BigEndian.PutUint16(buf[2:4], seq)
 		n, err := io.ReadFull(f, buf[4:])
 		if err != nil && err != io.ErrUnexpectedEOF {
-			Log("TFTP", "Transfer to %s failed: %s", addr, err)
+			Log("Transfer to %s failed: %s", addr, err)
 			conn.Write(mkError(err))
 			return
 		}
 		if err = sendPacket(conn, buf[:n+4], seq); err != nil {
-			Log("TFTP", "Transfer to %s failed: %s", addr, err)
+			Log("Transfer to %s failed: %s", addr, err)
 			return
 		}
 		seq++
 		if n < bsize {
 			// Transfer complete, we're done.
-			Log("TFTP", "Sent %q to %s", req.Filename, addr)
+			Log("Sent %q to %s", req.Filename, addr)
 			return
 		}
 	}
