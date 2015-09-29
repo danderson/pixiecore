@@ -27,11 +27,12 @@ A 200 response will cause Pixiecore to boot the requesting machine. A
 200 response must come with a JSON object payload. Recognized keys
 are:
 
-- `kernel`: the URL to the kernel that should be booted.
-- `initrd`: a list of initrds that should be booted into. Linux will
-  flatten all initrds together into one filesystem image.
-- `cmdline` (optional): commandline parameters to pass into the
-  kernel.
+- `kernel` (string): the URL to the kernel that should be booted.
+- `initrd` (list of string): a list of initrds that should be booted
+  into. Linux will flatten all initrds together into one filesystem
+  image.
+- `cmdline` (optional object): commandline parameters to pass into the
+  kernel. See the dedicated section below for detailed semantics.
 
 Malformed 200 responses will have the same result as a non-200
 response - Pixiecore will ignore the requesting machine.
@@ -77,6 +78,22 @@ steers the booting machine through Pixiecore for the fetch, and lets
 Pixiecore verify that it's only proxying for URLs that the API server
 gave it, so it's not an open proxy on your remediation vlan.
 
+### Kernel commandline parameters
+
+As described above, the kernel commandline is provided as an
+object. Each key/value pair translates to one argument passed to the
+kernel. Values can be one of:
+
+- `true`, which translates to just the key with no value, e.g. `"foo":
+  true` becomes `foo` on the kernel commandline.
+- A string, which gets passed as the verbatim value, e.g. `"foo":
+  "42"` becomes `foo=42`.
+- An object containing a `url` key, whose value is a URL. The URL will
+  get translated/proxied by Pixiecore in the same manner as the
+  kernel/initrd URLs. e.g. `"foo": {"url": "http://bar""}` becomes
+  `foo=<implementation dependent URL>`, and loading this URL will
+  yield the contents of `http://bar`.
+
 ### Multiple calls
 
 Pixiecore in API mode is stateless. Due to the unique way that PXE
@@ -120,7 +137,25 @@ Boot from HTTPS, with extra commandline flags.
 {
   "kernel": "https://files.local/kernel",
   "initrd": ["https://files.local/initrd"],
-  "cmdline": "selinux=1"
+  "cmdline": {
+    "selinux": "1",
+    "coreos.autologin": true
+  }
+}
+```
+
+Provide a proxied cloud-config and an unproxied other URL.
+
+```json
+{
+  "kernel": "https://files.local/kernel",
+  "initrd": ["https://files.local/initrd"],
+  "cmdline": {
+    "cloud-config-url": {
+      "url": "https://files.local/cloud-config"
+    },
+    "non-proxied-url": "https://files.local/something-else"
+  }
 }
 ```
 
@@ -134,3 +169,16 @@ Pixiecore's static mode: you give it a kernel, initrd and commandline
 as flags, and it serves those for all boot requests it
 receives. Unlike Pixiecore's builtin static mode, the sample server
 can only boot one initrd image.
+
+## Deprecated features
+
+### Kernel commandline as a string
+
+The `cmdline` parameter returned by the API server can also be a plain
+string instead of an object. That string is the full verbatim
+commandline to be passed to the booting kernel.
+
+This form was replaced by the object form to allow Pixiecore to do
+additional processing of the commandline before passing it to the
+booting kernel - specifically to allow for URL translation and
+proxying.
