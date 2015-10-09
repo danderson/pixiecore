@@ -24,20 +24,26 @@ Any non-200 response from the server will cause Pixieboot to ignore
 the requesting machine.
 
 A 200 response will cause Pixiecore to boot the requesting machine. A
-200 response must come with a JSON object payload. Recognized keys
-are:
+200 response must come with a JSON document conforming to the
+following specification, with **_italicized_** entries being optional:
 
-- `kernel` (string): the URL to the kernel that should be booted.
-- `initrd` (list of string): a list of initrds that should be booted
-  into. Linux will flatten all initrds together into one filesystem
-  image.
-- `cmdline` (optional object): commandline parameters to pass into the
-  kernel. See the dedicated section below for detailed semantics.
+- **kernel** (string): the URL of the kernel to boot.
+- **_initrd_** (list of strings): URLs of initrds to load. The kernel
+  will flatten all the initrds into a single filesystem.
+- **_cmdline_** (object): commandline parameters for the kernel. Each
+  key/value pair maps to key=value, where value can be:
+  - **string**: the value is passed verbatim to the kernel
+  - **true**: the value is omitted, only the key is passed to the
+    kernel.
+  - **object**: the value is a URL that Pixiecore will rewrite such
+    that it proxies the request (see below for why you'd want that).
+    - **url** (string): any URL. Pixiecore will rewrite the URL such
+      that it proxies the request.
 
 Malformed 200 responses will have the same result as a non-200
 response - Pixiecore will ignore the requesting machine.
 
-### Kernel and initrd URLs
+### Kernel, initrd and cmdline URLs
 
 As described above, the kernel and initrds are specified as URLs,
 enabling you to host them as you please - you could even link directly
@@ -77,22 +83,6 @@ URL, using an ephemeral key generated when Pixiecore starts. This
 steers the booting machine through Pixiecore for the fetch, and lets
 Pixiecore verify that it's only proxying for URLs that the API server
 gave it, so it's not an open proxy on your remediation vlan.
-
-### Kernel commandline parameters
-
-As described above, the kernel commandline is provided as an
-object. Each key/value pair translates to one argument passed to the
-kernel. Values can be one of:
-
-- `true`, which translates to just the key with no value, e.g. `"foo":
-  true` becomes `foo` on the kernel commandline.
-- A string, which gets passed as the verbatim value, e.g. `"foo":
-  "42"` becomes `foo=42`.
-- An object containing a `url` key, whose value is a URL. The URL will
-  get translated/proxied by Pixiecore in the same manner as the
-  kernel/initrd URLs. e.g. `"foo": {"url": "http://bar""}` becomes
-  `foo=<implementation dependent URL>`, and loading this URL will
-  yield the contents of `http://bar`.
 
 ### Multiple calls
 
