@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -33,6 +32,7 @@ type httpServer struct {
 	booter  Booter
 	ldlinux []byte
 	key     [32]byte // to sign URLs
+	port    int
 }
 
 func (s *httpServer) Ldlinux(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +59,11 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	spec, err := s.booter.BootSpec(mac)
+	if _, _, err := net.SplitHostPort(r.Host); err != nil {
+		r.Host = fmt.Sprintf("%s:%d", r.Host, s.port)
+	}
+
+	spec, err := s.booter.BootSpec(mac, fmt.Sprintf("http://%s/f/", r.Host))
 	if err != nil {
 		// We have a machine sitting in pxelinux, but the Booter says
 		// we shouldn't be netbooting. So, give it a config that tells
@@ -68,14 +72,6 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 		Debug("HTTP", "Telling pxelinux on %s (%s) to boot from disk because of API server verdict: %s", mac, r.RemoteAddr, err)
 		w.Write([]byte(bootFromDisk))
 		return
-	}
-
-	// The file IDs can be arbitrary blobs that make sense to the
-	// Booter, but pxelinux speaks URL, so we need to encode the
-	// blobs.
-	spec.Kernel = "f/" + base64.URLEncoding.EncodeToString([]byte(spec.Kernel))
-	for i := range spec.Initrd {
-		spec.Initrd[i] = "f/" + base64.URLEncoding.EncodeToString([]byte(spec.Initrd[i]))
 	}
 
 	cfg := fmt.Sprintf(`
@@ -91,14 +87,8 @@ APPEND initrd=%s %s
 }
 
 func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
-	encodedID := filepath.Base(r.URL.Path)
-	id, err := base64.URLEncoding.DecodeString(encodedID)
-	if err != nil {
-		Log("http", "Bad base64 encoding for URL %q from %s: %s", r.URL, r.RemoteAddr, err)
-		http.Error(w, "Malformed file ID", http.StatusBadRequest)
-		return
-	}
-	f, pretty, err := s.booter.File(string(id))
+	id := filepath.Base(r.URL.Path)
+	f, pretty, err := s.booter.File(id)
 	if err != nil {
 		Log("HTTP", "Couldn't get byte stream for %q from %s: %s", r.URL, r.RemoteAddr, err)
 		http.Error(w, "Couldn't get byte stream", http.StatusInternalServerError)
@@ -119,6 +109,7 @@ func ServeHTTP(port int, booter Booter, ldlinux []byte) error {
 	s := &httpServer{
 		booter:  booter,
 		ldlinux: ldlinux,
+		port:    port,
 	}
 	if _, err := io.ReadFull(rand.Reader, s.key[:]); err != nil {
 		return fmt.Errorf("cannot initialize ephemeral signing key: %s", err)

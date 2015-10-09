@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -23,6 +24,7 @@ var (
 	kernelFile    = flag.String("kernel", "", "Path to the linux kernel file to boot")
 	initrdFile    = flag.String("initrd", "", "Path to the initrd to pass to the kernel")
 	kernelCmdline = flag.String("cmdline", "", "Additional arguments for the kernel commandline")
+	cloudInit     = flag.String("cloud-init", "", "Cloud init file to load")
 )
 
 func main() {
@@ -34,21 +36,42 @@ func main() {
 	http.HandleFunc("/initrd", func(w http.ResponseWriter, r *http.Request) {
 		serveFile(*initrdFile, w)
 	})
+	http.HandleFunc("/cloud-config", func(w http.ResponseWriter, r *http.Request) {
+		serveFile(*cloudInit, w)
+	})
 	http.ListenAndServe(":"+strconv.Itoa(*port), nil)
 }
 
 func API(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving boot config for %s", filepath.Base(r.URL.Path))
-
+	http.NotFound(w, r)
 	resp := struct {
-		K string   `json:"kernel"`
-		I []string `json:"initrd"`
-		C string   `json:"cmdline"`
+		K string                 `json:"kernel"`
+		I []string               `json:"initrd"`
+		C map[string]interface{} `json:"cmdline"`
 	}{
-		fmt.Sprintf("http://%s/kernel", r.Host),
-		[]string{fmt.Sprintf("http://%s/initrd", r.Host)},
-		*kernelCmdline,
+		K: fmt.Sprintf("http://%s/kernel", r.Host),
+		I: []string{
+			fmt.Sprintf("http://%s/initrd", r.Host),
+		},
+		C: map[string]interface{}{},
 	}
+
+	for _, arg := range strings.Split(*kernelCmdline, " ") {
+		parts := strings.SplitN(arg, "=", 1)
+		if len(parts) == 2 {
+			resp.C[parts[0]] = parts[1]
+		} else {
+			resp.C[parts[0]] = true
+		}
+	}
+
+	if *cloudInit != "" {
+		resp.C["cloud-config-url"] = map[string]string{
+			"url": fmt.Sprintf("http://%s/cloud-config", r.Host),
+		}
+	}
+
 	if err := json.NewEncoder(w).Encode(&resp); err != nil {
 		panic(err)
 	}
