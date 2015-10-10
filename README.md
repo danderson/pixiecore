@@ -217,7 +217,7 @@ PXELINUX grabs all of that, and finally, Linux boots.
 
 This is what the whole boot process looks like on the wire.
 
-#### Dramatis Personae¦
+#### Dramatis Personæ
 
 - **PXE ROM**, a brittle firmware burned into the network card.
 - **DHCP server**, a plain old DHCP server providing network configuration.
