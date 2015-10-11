@@ -168,7 +168,7 @@ func (b *remoteBooter) Read(id string) (io.ReadCloser, string, error) {
 		return nil, u, err
 	}
 	if resp.StatusCode != 200 {
-		return nil, u, fmt.Errorf("GET %q failed: %s", id, resp.Status)
+		return nil, u, fmt.Errorf("GET %q failed: %s", u, resp.Status)
 	}
 	return resp.Body, u, nil
 }
