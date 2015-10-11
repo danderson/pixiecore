@@ -49,6 +49,14 @@ As described above, the kernel and initrds are specified as URLs,
 enabling you to host them as you please - you could even link directly
 to a distro's download links if you wanted.
 
+URLs provided by the API server can be absolute, or just a naked
+path. In the latter case, the path is resolved with reference to the
+API server URL that Pixiecore is using - although note that the path
+is _not_ rooted within Pixiecore's API path. For example, if you
+provide `/foo` as a URL to Pixiecore running with `-api
+http://bar.com/baz`, Pixiecore will fetch `http://bar.com/foo`, _not_
+`http://bar.com/baz/foo`.
+
 Pixiecore will not point booting machines directly at the given
 URLs. Instead, it will point the booting machines to a proxy URL on
 Pixiecore's HTTP server, and proxy the transfer.

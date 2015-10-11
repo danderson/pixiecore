@@ -9,7 +9,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -44,16 +43,13 @@ func main() {
 
 func API(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving boot config for %s", filepath.Base(r.URL.Path))
-	http.NotFound(w, r)
 	resp := struct {
 		K string                 `json:"kernel"`
 		I []string               `json:"initrd"`
 		C map[string]interface{} `json:"cmdline"`
 	}{
-		K: fmt.Sprintf("http://%s/kernel", r.Host),
-		I: []string{
-			fmt.Sprintf("http://%s/initrd", r.Host),
-		},
+		K: "/kernel",
+		I: []string{"/initrd"},
 		C: map[string]interface{}{},
 	}
 
@@ -68,7 +64,7 @@ func API(w http.ResponseWriter, r *http.Request) {
 
 	if *cloudInit != "" {
 		resp.C["cloud-config-url"] = map[string]string{
-			"url": fmt.Sprintf("http://%s/cloud-config", r.Host),
+			"url": "/cloud-config",
 		}
 	}
 

@@ -115,12 +115,13 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		return nil, err
 	}
 
-	// Check that the API server gave us absolute URLs for everything
-	if err = isURLAbsolute(r.Kernel); err != nil {
+	r.Kernel, err = b.makeURLAbsolute(r.Kernel)
+	if err != nil {
 		return nil, err
 	}
-	for _, img := range r.Initrd {
-		if err = isURLAbsolute(img); err != nil {
+	for i, img := range r.Initrd {
+		r.Initrd[i], err = b.makeURLAbsolute(img)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -182,7 +183,8 @@ func (b *remoteBooter) constructCmdline(m map[string]interface{}, fileURLPrefix 
 			if !ok {
 				return "", fmt.Errorf("cmdline key %q has object value with no 'url' attribute", k)
 			}
-			if err := isURLAbsolute(urlStr); err != nil {
+			urlStr, err := b.makeURLAbsolute(urlStr)
+			if err != nil {
 				return "", fmt.Errorf("invalid url for cmdline key %q: %s", k, err)
 			}
 			encoded, err := b.signURL(urlStr, fileURLPrefix)
@@ -235,6 +237,21 @@ func (b *remoteBooter) getURL(signedStr string) (string, error) {
 	return string(out), nil
 }
 
+func (b *remoteBooter) makeURLAbsolute(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", fmt.Errorf("%q is not an URL", urlStr)
+	}
+	if !u.IsAbs() {
+		base, err := url.Parse(b.urlPrefix)
+		if err != nil {
+			return "", err
+		}
+		u = base.ResolveReference(u)
+	}
+	return u.String(), nil
+}
+
 // StaticBooter boots all machines with local files.
 func StaticBooter(kernelPath string, initrdPaths []string, cmdline string) Booter {
 	return &staticBooter{
@@ -275,15 +292,4 @@ func (b staticBooter) File(id string) (io.ReadCloser, string, error) {
 		return f, "initrd." + id, err
 	}
 	return nil, "", fmt.Errorf("no file with ID %q", id)
-}
-
-func isURLAbsolute(urlStr string) error {
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		return fmt.Errorf("%q is not an URL", urlStr)
-	}
-	if !u.IsAbs() {
-		return fmt.Errorf("URL %q is not absolute", urlStr)
-	}
-	return nil
 }
