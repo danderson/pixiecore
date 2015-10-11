@@ -50,7 +50,7 @@ type Booter interface {
 	// Get the contents of a blob mentioned in a previously issued
 	// BootSpec. Additionally returns a pretty name for the blob for
 	// logging purposes.
-	File(id string) (io.ReadCloser, string, error)
+	File(id string, body io.Reader) (io.ReadCloser, string, error)
 }
 
 // RemoteBooter gets a BootSpec from a remote server over HTTP.
@@ -153,14 +153,20 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 	return &ret, nil
 }
 
-func (b *remoteBooter) File(id string) (io.ReadCloser, string, error) {
+func (b *remoteBooter) File(id string, body io.Reader) (io.ReadCloser, string, error) {
 	u, err := b.getURL(id)
 	if err != nil {
 		return nil, "", err
 	}
+
 	// Can't use the handbuilt client we have, it times out too
 	// aggressively. Need to work on that.
-	resp, err := http.Get(u)
+	var resp *http.Response
+	if body != nil {
+		resp, err = http.Post(u, "application/octet-stream", body)
+	} else {
+		resp, err = http.Get(u)
+	}
 	if err != nil {
 		return nil, "", err
 	}
@@ -282,7 +288,7 @@ func (b *staticBooter) BootSpec(unused net.HardwareAddr, prefix string) (*BootSp
 	return ret, nil
 }
 
-func (b staticBooter) File(id string) (io.ReadCloser, string, error) {
+func (b staticBooter) File(id string, body io.Reader) (io.ReadCloser, string, error) {
 	if id == "kernel" {
 		fmt.Println(b.kernelPath)
 		f, err := os.Open(b.kernelPath)
