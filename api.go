@@ -50,7 +50,11 @@ type Booter interface {
 	// Get the contents of a blob mentioned in a previously issued
 	// BootSpec. Additionally returns a pretty name for the blob for
 	// logging purposes.
-	File(id string, body io.Reader) (io.ReadCloser, string, error)
+	Read(id string) (io.ReadCloser, string, error)
+	// Write the given Reader to a blob mentioned in a previously
+	// issued BootSpec. Additionally returns a pretty name for the
+	// blob for logging purposes.
+	Write(id string, body io.Reader) (io.ReadCloser, string, error)
 }
 
 // RemoteBooter gets a BootSpec from a remote server over HTTP.
@@ -153,22 +157,34 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 	return &ret, nil
 }
 
-func (b *remoteBooter) File(id string, body io.Reader) (io.ReadCloser, string, error) {
+func (b *remoteBooter) Read(id string) (io.ReadCloser, string, error) {
 	u, err := b.getURL(id)
 	if err != nil {
 		return nil, "", err
 	}
 
-	// Can't use the handbuilt client we have, it times out too
-	// aggressively. Need to work on that.
-	var resp *http.Response
-	if body != nil {
-		resp, err = http.Post(u, "application/octet-stream", body)
-	} else {
-		resp, err = http.Get(u)
+	resp, err := http.Get(u)
+	if err != nil {
+		return nil, u, err
 	}
+	if resp.StatusCode != 200 {
+		return nil, u, fmt.Errorf("GET %q failed: %s", id, resp.Status)
+	}
+	return resp.Body, u, nil
+}
+
+func (b *remoteBooter) Write(id string, body io.Reader) (io.ReadCloser, string, error) {
+	u, err := b.getURL(id)
 	if err != nil {
 		return nil, "", err
+	}
+
+	resp, err := http.Post(u, "application/octet-stream", body)
+	if err != nil {
+		return nil, u, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, u, fmt.Errorf("POST %q failed: %s", id, resp.Status)
 	}
 	return resp.Body, u, nil
 }
@@ -288,7 +304,7 @@ func (b *staticBooter) BootSpec(unused net.HardwareAddr, prefix string) (*BootSp
 	return ret, nil
 }
 
-func (b staticBooter) File(id string, body io.Reader) (io.ReadCloser, string, error) {
+func (b staticBooter) Read(id string) (io.ReadCloser, string, error) {
 	if id == "kernel" {
 		fmt.Println(b.kernelPath)
 		f, err := os.Open(b.kernelPath)
@@ -298,4 +314,8 @@ func (b staticBooter) File(id string, body io.Reader) (io.ReadCloser, string, er
 		return f, "initrd." + id, err
 	}
 	return nil, "", fmt.Errorf("no file with ID %q", id)
+}
+
+func (b staticBooter) Write(id string, body io.Reader) (io.ReadCloser, string, error) {
+	return nil, "", errors.New("Blob writes not supported in static booter")
 }

@@ -88,11 +88,17 @@ APPEND initrd=%s %s
 
 func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
 	id := filepath.Base(r.URL.Path)
-	var body io.Reader
+
+	var (
+		f      io.ReadCloser
+		pretty string
+		err    error
+	)
 	if r.Method == "POST" {
-		body = r.Body
+		f, pretty, err = s.booter.Write(id, r.Body)
+	} else {
+		f, pretty, err = s.booter.Read(id)
 	}
-	f, pretty, err := s.booter.File(id, body)
 	if err != nil {
 		Log("HTTP", "Couldn't get byte stream for %q from %s: %s", r.URL, r.RemoteAddr, err)
 		http.Error(w, "Couldn't get byte stream", http.StatusInternalServerError)
