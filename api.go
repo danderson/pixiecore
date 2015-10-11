@@ -184,7 +184,7 @@ func (b *remoteBooter) Write(id string, body io.Reader) (io.ReadCloser, string, 
 		return nil, u, err
 	}
 	if resp.StatusCode != 200 {
-		return nil, u, fmt.Errorf("POST %q failed: %s", id, resp.Status)
+		return nil, u, fmt.Errorf("POST %q failed: %s", u, resp.Status)
 	}
 	return resp.Body, u, nil
 }
