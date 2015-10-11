@@ -91,58 +91,6 @@ func (b *remoteBooter) getAPIResponse(hw net.HardwareAddr) (io.ReadCloser, error
 	return resp.Body, nil
 }
 
-func (b *remoteBooter) getSpec(hw net.HardwareAddr) (*spec, error) {
-	reqURL := fmt.Sprintf("%s/boot/%s", b.urlPrefix, hw)
-	resp, err := b.client.Get(reqURL)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s", reqURL, http.StatusText(resp.StatusCode))
-	}
-
-	r := struct {
-		Kernel  string      `json:"kernel"`
-		Initrd  []string    `json:"initrd"`
-		Cmdline interface{} `json:"cmdline"`
-	}{}
-	if err = json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return nil, fmt.Errorf("non-json response from %s: %s", reqURL, err)
-	}
-
-	// Check that the API server gave us absolute URLs for everything
-	if err = isURLAbsolute(r.Kernel); err != nil {
-		return nil, fmt.Errorf("bad kernel URL provided by %q: %s", reqURL, err)
-	}
-	for _, img := range r.Initrd {
-		if err = isURLAbsolute(img); err != nil {
-			return nil, fmt.Errorf("bad initrd URL provided by %q: %s", reqURL, err)
-		}
-	}
-
-	ret := &spec{
-		BootSpec: BootSpec{
-			Kernel: r.Kernel,
-			Initrd: r.Initrd,
-		},
-	}
-
-	switch c := r.Cmdline.(type) {
-	case string:
-		// This is the original format for cmdline, where the whole
-		// commandline is returned in one chunk. Just encode it as a
-		// value-less key, which will get formatted properly
-		// downstream.
-		ret.Cmdline = c
-	case map[string]interface{}:
-		ret.cmdMap = c
-	default:
-		return nil, fmt.Errorf("API server returned unknown type %T for kernel cmdline", r.Cmdline)
-	}
-
-	return ret, nil
-}
-
 func (b *remoteBooter) ShouldBoot(hw net.HardwareAddr) error {
 	r, err := b.getAPIResponse(hw)
 	if r != nil {
