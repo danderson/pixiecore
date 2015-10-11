@@ -88,9 +88,9 @@ APPEND initrd=%s %s
 
 func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
 	id := filepath.Base(r.URL.Path)
-	body := r.Body
-	if r.Method == "GET" {
-		body = nil
+	var body io.Reader
+	if r.Method == "POST" {
+		body = r.Body
 	}
 	f, pretty, err := s.booter.File(id, body)
 	if err != nil {
