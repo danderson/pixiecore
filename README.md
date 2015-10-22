@@ -238,3 +238,15 @@ This is what the whole boot process looks like on the wire.
 - PXE ROM downloads PXELINUX from Pixiecore's TFTP server, and hands off to PXELINUX.
 - PXELINUX fetches its configuration from Pixiecore's HTTP server.
 - PXELINUX fetches a kernel and ramdisk from Pixiecore's HTTP server, and boots Linux.
+
+## Development
+You can use [Vagrant](https://www.vagrantup.com/) to quickly setup a test environment:
+
+    (HOST)$ vagrant up --provider=libvirt pxeserver
+    (HOST)$ vagrant ssh pxeserver
+    (PXESERVER)$ wget http://alpha.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz
+    (PXESERVER)$ wget http://alpha.release.core-os.net/amd64-usr/current/coreos_production_pxe_image.cpio.gz
+    (PXESERVER)$ pixiecore -debug -kernel coreos_production_pxe.vmlinuz -initrd coreos_production_pxe_image.cpio.gz --cmdline coreos.autologin
+    ### In another terminal
+    (HOST)$ vagrant up --provider=libvirt pxeclient1
+
