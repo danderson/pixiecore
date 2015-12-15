@@ -19,8 +19,8 @@ type PXEPacket struct {
 	HTTPServer string
 }
 
-func ServePXE(pxePort, httpPort int) error {
-	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%d", pxePort))
+func ServePXE(pxeAddr string, httpPort int) error {
+	conn, err := net.ListenPacket("udp4", pxeAddr)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func ServePXE(pxePort, httpPort int) error {
 		return err
 	}
 
-	Log("PXE", "Listening on port %d", pxePort)
+	Log("PXE", "Listening on %s", pxeAddr)
 	buf := make([]byte, 1024)
 	for {
 		n, msg, addr, err := l.ReadFrom(buf)

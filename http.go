@@ -115,7 +115,7 @@ func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
 	Log("HTTP", "Sent %s to %s (%d bytes)", pretty, r.RemoteAddr, written)
 }
 
-func ServeHTTP(port int, booter Booter, ldlinux []byte) error {
+func ServeHTTP(addr string, port int, booter Booter, ldlinux []byte) error {
 	s := &httpServer{
 		booter:  booter,
 		ldlinux: ldlinux,
@@ -129,6 +129,7 @@ func ServeHTTP(port int, booter Booter, ldlinux []byte) error {
 	http.HandleFunc("/pxelinux.cfg/", s.PxelinuxConfig)
 	http.HandleFunc("/f/", s.File)
 
-	Log("HTTP", "Listening on port %d", port)
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	httpAddr := fmt.Sprintf("%s:%d", addr, port)
+	Log("HTTP", "Listening on %s", httpAddr)
+	return http.ListenAndServe(httpAddr, nil)
 }
