@@ -110,7 +110,7 @@ Because Pixiecore needs to listen for DHCP traffic, it has to run with
 the host network stack.
 
 ```shell
-sudo docker run -v .:/image --net=host danderson/pixiecore -kernel /image/coreos_production_pxe.vmlinuz -initrd /image/coreos_prodeuction_pxe_image.cpio.gz
+sudo docker run -v .:/image --net=host danderson/pixiecore -kernel /image/coreos_production_pxe.vmlinuz -initrd /image/coreos_production_pxe_image.cpio.gz
 ```
 
 ## How it works
