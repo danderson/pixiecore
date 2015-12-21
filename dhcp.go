@@ -20,8 +20,8 @@ type DHCPPacket struct {
 	ServerIP net.IP
 }
 
-func ServeProxyDHCP(port int, booter Booter) error {
-	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%d", port))
+func ServeProxyDHCP(addr string, booter Booter) error {
+	conn, err := net.ListenPacket("udp4", addr)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func ServeProxyDHCP(port int, booter Booter) error {
 		return err
 	}
 
-	Log("ProxyDHCP", "Listening on port %d", port)
+	Log("ProxyDHCP", "Listening on %s", addr)
 	buf := make([]byte, 1024)
 	for {
 		n, msg, addr, err := l.ReadFrom(buf)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,10 +20,11 @@ var (
 	// option ROM, so it's pretty pointless unless you'd playing
 	// packet rewriting tricks or doing simulations with packet
 	// generators.
-	portDHCP = flag.Int("port-dhcp", 67, "Port to listen on for DHCP requests")
-	portPXE  = flag.Int("port-pxe", 4011, "Port to listen on for PXE requests")
-	portTFTP = flag.Int("port-tftp", 69, "Port to listen on for TFTP requests")
-	portHTTP = flag.Int("port-http", 70, "Port to listen on for HTTP requests")
+	portDHCP   = flag.Int("port-dhcp", 67, "Port to listen on for DHCP requests")
+	portPXE    = flag.Int("port-pxe", 4011, "Port to listen on for PXE requests")
+	portTFTP   = flag.Int("port-tftp", 69, "Port to listen on for TFTP requests")
+	portHTTP   = flag.Int("port-http", 70, "Port to listen on for HTTP requests")
+	listenAddr = flag.String("listen-addr", "", "Address to listen on (default all)")
 
 	apiServer  = flag.String("api", "", "Path to the boot API server")
 	apiTimeout = flag.Duration("api-timeout", 5*time.Second, "Timeout on boot API server requests")
@@ -90,18 +90,21 @@ func main() {
 	}
 
 	go func() {
-		log.Fatalln(ServeProxyDHCP(*portDHCP, booter))
+		addrDHCP := fmt.Sprintf("%s:%d", *listenAddr, *portDHCP)
+		log.Fatalln(ServeProxyDHCP(addrDHCP, booter))
 	}()
 	go func() {
-		log.Fatalln(ServePXE(*portPXE, *portHTTP))
+		addrPXE := fmt.Sprintf("%s:%d", *listenAddr, *portPXE)
+		log.Fatalln(ServePXE(addrPXE, *portHTTP))
 	}()
 	go func() {
+		addrTFTP := fmt.Sprintf("%s:%d", *listenAddr, *portTFTP)
 		tftp.Log = func(msg string, args ...interface{}) { Log("TFTP", msg, args...) }
 		tftp.Debug = func(msg string, args ...interface{}) { Debug("TFTP", msg, args...) }
-		log.Fatalln(tftp.ListenAndServe("udp4", ":"+strconv.Itoa(*portTFTP), tftp.Blob(pxelinux)))
+		log.Fatalln(tftp.ListenAndServe("udp4", addrTFTP, tftp.Blob(pxelinux)))
 	}()
 	go func() {
-		log.Fatalln(ServeHTTP(*portHTTP, booter, ldlinux))
+		log.Fatalln(ServeHTTP(*listenAddr, *portHTTP, booter, ldlinux))
 	}()
 	RecordLogs(*debug)
 }
