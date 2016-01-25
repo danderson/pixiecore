@@ -3,6 +3,7 @@
 #2nd assumption: You'd like GVM installed on your machine
 #3rd assumption: you're using an amd64 box
 #4th assumption: you're OK with installing coreos-cloudinit via go get github.com/coreos/coreos/cloudinit
+#5th assumption: you're using Debian or Ubuntu as your operating system.  Linux mint users should be safe, too.  Arch users should be able to write a better script, since they can install Arch.  
 #see also: https://github.com/coreos/coreos-baremetal
 export PUBKEY=$(cat ~/.ssh/id_rsa.pub)
 wget -O coreos_fancy/coreos_production_pxe.vmlinuz http://beta.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz
@@ -17,8 +18,16 @@ echo "#cloud-config" > cloud-config.yml
 #two arrows to send to the last line of an existing file
 echo "ssh_authorized_keys:" >> cloud-config.yml 
 echo "  - $PUBKEY" >> cloud-config.yml
+#installs GVM-- if you even sorta use go, gvm is a lifesaver par excellence.
 bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
 gvm install go1.5.3 -B
 gvm use go1.5.3 --default
 go get github.com/coreos/coreos-cloudinit
+#the command below will ensure that your cloud-config.yml checks out before you try and start the system with it, and find out you've missed a space or something three days after you began, and that's why you can't ssh into the server.
 coreos-cloudinit -validate --from-file=cloud-config.yml
+sudo apt-get install moreutils
+go get github.com/mholt/caddy
+caddy
+ifdata -pa eth0 > eth0
+export IPADDR=$(cat eth0)
+pixiecore -kernel=coreos_production_pxe.vmlinuz -initrd=coreos_production_pxe_image.cpio.gz -cmdline=http://$IPADDR:2015/cloud-config.yml
