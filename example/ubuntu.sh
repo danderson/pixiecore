@@ -3,7 +3,7 @@
 mkdir ubuntu
 rm ubuntu/initrd.gz
 rm ubuntu/linux
-wget http://archive.ubuntu.com/ubuntu/dists/trusty-updates/main/installer-amd64/current/images/wily-netboot/ubuntu-installer/amd64/initrd.gz
-wget wget http://archive.ubuntu.com/ubuntu/dists/trusty-updates/main/installer-amd64/current/images/wily-netboot/ubuntu-installer/amd64/linux
-sudo pixiecore -kernel=linux -initrd=initrd.gz -cmdline="auto url=http://preseed.panticz.de/preseed/ubuntu-minimal.seed"
+wget -O ubuntu/initrd.gz http://archive.ubuntu.com/ubuntu/dists/trusty-updates/main/installer-amd64/current/images/wily-netboot/ubuntu-installer/amd64/initrd.gz
+wget -O ubuntu/linux http://archive.ubuntu.com/ubuntu/dists/trusty-updates/main/installer-amd64/current/images/wily-netboot/ubuntu-installer/amd64/linux
+sudo pixiecore -kernel=ubuntu/linux -initrd=ubuntu/initrd.gz -cmdline="auto url=http://preseed.panticz.de/preseed/ubuntu-minimal.seed"
 
