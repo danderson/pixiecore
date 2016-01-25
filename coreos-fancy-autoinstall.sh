@@ -3,7 +3,7 @@
 #2nd assumption: You'd like GVM installed on your machine
 #3rd assumption: you're using an amd64 box
 #4th assumption: you're OK with installing coreos-cloudinit via go get github.com/coreos/coreos/cloudinit
-#5th assumption: you're using Debian or Ubuntu as your operating system.  Linux mint users should be safe, too.  Arch users should be able to write a better script, since they can install Arch.  
+#5th assumption: you're using Debian or Ubuntu as your operating system.  Linux mint and users of most debian-derived distros should be safe, too.  Arch users should be able to write a better script, since they can install Arch.  
 #see also: https://github.com/coreos/coreos-baremetal
 export PUBKEY=$(cat ~/.ssh/id_rsa.pub)
 wget -O coreos_fancy/coreos_production_pxe.vmlinuz http://beta.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz
