@@ -249,4 +249,11 @@ You can use [Vagrant](https://www.vagrantup.com/) to quickly setup a test enviro
     (PXESERVER)$ pixiecore -debug -kernel coreos_production_pxe.vmlinuz -initrd coreos_production_pxe_image.cpio.gz --cmdline coreos.autologin
     ### In another terminal
     (HOST)$ vagrant up --provider=libvirt pxeclient1
+    
+## Notable Spawn/integrations
+ * [Spriteful](https://github.com/AcalephStorage/spriteful)
+ * [Hydrazine](https://github.com/dgonyeo/hydrazine)  NOTE: hydrazine is unfinished.
+ * [Coreos Baremetal](https://github.com/coreos/coreos-baremetal)
+ * [Waitron](https://github.com/jhaals/waitron)
+
 
