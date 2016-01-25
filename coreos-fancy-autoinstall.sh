@@ -6,6 +6,7 @@
 #5th assumption: you're using Debian or Ubuntu as your operating system.  Linux mint and users of most debian-derived distros should be safe, too.  Arch users should be able to write a better script, since they can install Arch.  
 #see also: https://github.com/coreos/coreos-baremetal
 export PUBKEY=$(cat ~/.ssh/id_rsa.pub)
+mkdir coreos_fancy
 wget -O coreos_fancy/coreos_production_pxe.vmlinuz http://beta.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz
 wget -O coreos_fancy/coreos_production_pxe.vmlinuz.sig http://beta.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz.sig
 wget -O coreos_fancy/coreos_production_pxe_image.cpio.gz http://beta.release.core-os.net/amd64-usr/current/coreos_production_pxe_image.cpio.gz
