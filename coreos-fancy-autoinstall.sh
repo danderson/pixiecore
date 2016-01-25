@@ -31,6 +31,6 @@ coreos-cloudinit -validate --from-file=cloud-config.yml
 sudo apt-get install -y -qq moreutils
 go get github.com/mholt/caddy
 caddy > caddy.log
-ifdata -pa eth0 > eth0
+sudo ifdata -pa eth0 > eth0
 export IPADDR=$(cat eth0)
-pixiecore -kernel=coreos_production_pxe.vmlinuz -initrd=coreos_production_pxe_image.cpio.gz -cmdline=http://$IPADDR:2015/cloud-config.yml
+sudo pixiecore -kernel=coreos_production_pxe.vmlinuz -initrd=coreos_production_pxe_image.cpio.gz -cmdline=http://$IPADDR:2015/cloud-config.yml
