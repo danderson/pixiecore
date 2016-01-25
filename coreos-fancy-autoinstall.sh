@@ -22,6 +22,7 @@ echo "ssh_authorized_keys:" >> cloud-config.yml
 echo "  - $PUBKEY" >> cloud-config.yml
 #installs GVM-- if you even sorta use go, gvm is a lifesaver par excellence.
 bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+source ~/.gvm/scripts/gvm
 gvm install go1.5.3 -B
 gvm use go1.5.3 --default
 go get github.com/coreos/coreos-cloudinit
@@ -29,7 +30,7 @@ go get github.com/coreos/coreos-cloudinit
 coreos-cloudinit -validate --from-file=cloud-config.yml
 sudo apt-get install moreutils
 go get github.com/mholt/caddy
-caddy
+caddy > caddy.log
 ifdata -pa eth0 > eth0
 export IPADDR=$(cat eth0)
 pixiecore -kernel=coreos_production_pxe.vmlinuz -initrd=coreos_production_pxe_image.cpio.gz -cmdline=http://$IPADDR:2015/cloud-config.yml
