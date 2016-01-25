@@ -28,7 +28,7 @@ gvm use go1.5.3 --default
 go get github.com/coreos/coreos-cloudinit
 #the command below will ensure that your cloud-config.yml checks out before you try and start the system with it, and find out you've missed a space or something three days after you began, and that's why you can't ssh into the server.
 coreos-cloudinit -validate --from-file=cloud-config.yml
-sudo apt-get install moreutils
+sudo apt-get install -y -qq moreutils
 go get github.com/mholt/caddy
 caddy > caddy.log
 ifdata -pa eth0 > eth0
