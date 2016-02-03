@@ -4,4 +4,4 @@ rm debian/linux
 rm debian/initrd.gz
 wget http://ftp.debian.org/debian/dists/jessie/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux
 wget http://ftp.debian.org/debian/dists/jessie/main/installer-amd64/current/images/netboot/debian-installer/amd64/initrd.gz
-pixiecore -initrd debian/initrd.gz -kernel debian/linux -cmdline="auto=true url=https://gist.githubusercontent.com/sckn/cfd63ffe088f86a870c6/raw/fd4816f80e4461f590d60e1b6b2770bacebbd216/preseed.cfg"
+pixiecore -initrd debian/initrd.gz -kernel debian/linux -cmdline="auto=true url=https://www.debian.org/releases/jessie/example-preseed.txt"
