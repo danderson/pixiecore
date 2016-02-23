@@ -1,0 +1,40 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "golang.org/x/crypto/nacl/secretbox",
+			"repository": "https://go.googlesource.com/crypto",
+			"revision": "beef0f4390813b96e8e68fd78570396d0f4751fc",
+			"branch": "master",
+			"path": "/nacl/secretbox"
+		},
+		{
+			"importpath": "golang.org/x/crypto/poly1305",
+			"repository": "https://go.googlesource.com/crypto",
+			"revision": "beef0f4390813b96e8e68fd78570396d0f4751fc",
+			"branch": "master",
+			"path": "/poly1305"
+		},
+		{
+			"importpath": "golang.org/x/crypto/salsa20/salsa",
+			"repository": "https://go.googlesource.com/crypto",
+			"revision": "beef0f4390813b96e8e68fd78570396d0f4751fc",
+			"branch": "master",
+			"path": "/salsa20/salsa"
+		},
+		{
+			"importpath": "golang.org/x/net/internal/iana",
+			"repository": "https://go.googlesource.com/net",
+			"revision": "c745c36eab1034bceb7999c915ced45b1f99021f",
+			"branch": "master",
+			"path": "/internal/iana"
+		},
+		{
+			"importpath": "golang.org/x/net/ipv4",
+			"repository": "https://go.googlesource.com/net",
+			"revision": "c745c36eab1034bceb7999c915ced45b1f99021f",
+			"branch": "master",
+			"path": "/ipv4"
+		}
+	]
+}

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/danderson/pixiecore/tftp"
+	"tftp"
 )
 
 //go:generate go-bindata -o pxelinux_autogen.go -prefix=pxelinux -ignore=README.md pxelinux
