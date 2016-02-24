@@ -1,4 +1,5 @@
-pixiecore
+bin
+pkg
+
 example/example
 .vagrant
-
