@@ -1,0 +1,14 @@
+language: go
+go:
+  - 1.5
+  - 1.6
+  - tip
+install:
+  - go get github.com/constabulary/gb/...
+  - go get github.com/golang/lint/golint
+before_script:
+script: 
+  - gb build
+  - gb test
+  - go tool vet src/
+  - golint src/
