@@ -1,4 +1,6 @@
 pixiecore
 example/example
 .vagrant
+pkg
+vendor
 
