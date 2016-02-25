@@ -239,7 +239,27 @@ This is what the whole boot process looks like on the wire.
 - PXELINUX fetches its configuration from Pixiecore's HTTP server.
 - PXELINUX fetches a kernel and ramdisk from Pixiecore's HTTP server, and boots Linux.
 
+## Known deviations from specifications
+
+Pixiecore aims to be compliant with the relevant specifications for
+TFTP, DHCP, and PXE. This section lists the places where Pixiecore
+deliberately deviates from the spec to support buggy clients.
+
+### Missing Client Machine Identifier (GUID) option
+
+Some PXE ROMs don't send DHCP option 97, "Client Machine Identifier
+(GUID)", in their DHCP and PXE requests. According to the PXE 2.1
+specification and RFC 4578, this makes the requests non-compliant:
+
+> This option MUST be present in all DHCP and PXE packets sent by PXE-compliant clients and servers.
+
+Pixiecore's behavior implements "SHOULD" instead of "MUST": if a
+client request has a GUID, Pixiecore's response will respond with a
+GUID. If the client request has no GUID, Pixiecore omits option 97 in
+its response.
+
 ## Development
+
 You can use [Vagrant](https://www.vagrantup.com/) to quickly setup a test environment:
 
     (HOST)$ vagrant up --provider=libvirt pxeserver

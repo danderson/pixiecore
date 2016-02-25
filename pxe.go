@@ -93,8 +93,10 @@ func ReplyPXE(p *PXEPacket) []byte {
 	b.Write([]byte{60, 9})
 	b.WriteString("PXEClient")
 	// Client UUID
-	b.Write([]byte{97, 17, 0})
-	b.Write(p.GUID)
+	if p.GUID != nil {
+		b.Write([]byte{97, 17, 0})
+		b.Write(p.GUID)
+	}
 	// Mirror the menu selection back at the client
 	b.Write([]byte{43, 7, 71, 4})
 	b.Write(p.BootType)
@@ -154,9 +156,6 @@ func ParsePXE(b []byte) (req *PXEPacket, err error) {
 		typ, val, opts = dhcpOption(opts)
 	}
 
-	if ret.GUID == nil {
-		return nil, fmt.Errorf("%s (%s) is not a PXE client", ret.MAC, ret.ClientIP)
-	}
 	if ret.BootType == nil {
 		return nil, fmt.Errorf("%s (%s) hasn't selected a menu option", ret.MAC, ret.ClientIP)
 	}

@@ -94,8 +94,10 @@ func OfferDHCP(p *DHCPPacket) []byte {
 	b.Write([]byte{60, 9})
 	b.WriteString("PXEClient")
 	// Client UUID
-	b.Write([]byte{97, 17, 0})
-	b.Write(p.GUID)
+	if p.GUID != nil {
+		b.Write([]byte{97, 17, 0})
+		b.Write(p.GUID)
+	}
 
 	// PXE vendor options
 	var pxe bytes.Buffer
@@ -142,6 +144,7 @@ func ParseDHCP(b []byte) (req *DHCPPacket, err error) {
 		return nil, fmt.Errorf("packet from %s is not a DHCP request", ret.MAC)
 	}
 
+	hasArch := false
 	typ, val, opts := dhcpOption(b[240:])
 	for typ != 255 {
 		switch typ {
@@ -159,6 +162,7 @@ func ParseDHCP(b []byte) (req *DHCPPacket, err error) {
 			if binary.BigEndian.Uint16(val) != 0 {
 				return nil, fmt.Errorf("%s is not an x86 PXE client", ret.MAC)
 			}
+			hasArch = true
 		case 97:
 			if len(val) != 17 || val[0] != 0 {
 				return nil, fmt.Errorf("packet from %s has malformed option 97", ret.MAC)
@@ -168,8 +172,9 @@ func ParseDHCP(b []byte) (req *DHCPPacket, err error) {
 		typ, val, opts = dhcpOption(opts)
 	}
 
-	if ret.GUID == nil {
-		return nil, fmt.Errorf("%s is not a PXE client", ret.MAC)
+	// Use DHCP option 93 as a proxy for "is this a PXE request?"
+	if !hasArch {
+		return nil, fmt.Errorf("packet from %s is not a PXE request (missing option 93, 'client architecture')", ret.MAC)
 	}
 
 	// Valid PXE request!
