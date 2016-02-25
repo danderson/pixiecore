@@ -1,0 +1,19 @@
+hash: 7d1dccdf25727f6f2381ed67bd0c9b508bb2dddab22b7dc2242b58a70c564a58
+updated: 2016-02-25T18:10:49.578369418+01:00
+imports:
+- name: github.com/danderson/pixiecore
+  version: 0e318c512352eeb88d09d86fb254e3900a7fc261
+  subpackages:
+  - tftp
+- name: golang.org/x/crypto
+  version: 1f22c0103821b9390939b6776727195525381532
+  subpackages:
+  - nacl/secretbox
+  - poly1305
+  - salsa20/salsa
+- name: golang.org/x/net
+  version: 4599ae7937fce9b670ce32b8ad32bbb7ae726b3e
+  subpackages:
+  - ipv4
+  - internal/iana
+devImports: []
