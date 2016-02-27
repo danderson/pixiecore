@@ -1,10 +1,8 @@
-/* Package tftp provides a read-only TFTP server implementation.
-
-ListenAndServe starts a TFTP server with a given address and handler.
-
-	log.Fatal(tftp.ListenAndServe("udp4", ":69", fooHandler))
-
-*/
+// Package tftp provides a read-only TFTP server implementation.
+//
+// ListenAndServe starts a TFTP server with a given address and handler.
+//
+// log.Fatal(tftp.ListenAndServe("udp4", ":69", fooHandler))
 package tftp
 
 import (
@@ -26,8 +24,8 @@ type rrq struct {
 	BlockSize int
 }
 
-// Log is called with messages of general interest.
-var Log = func(msg string, args ...interface{}) {
+// Logf is called with messages of general interest.
+var Logf = func(msg string, args ...interface{}) {
 	log.Printf(msg, args)
 }
 
@@ -42,12 +40,12 @@ type Handler func(path string, clientAddr net.Addr) (io.ReadCloser, error)
 // creating a new service goroutine for each. The service goroutines
 // use handler to get a byte stream and send it to the client.
 func Serve(l net.PacketConn, handler Handler) {
-	Log("Listening on %s", l.LocalAddr())
+	Logf("Listening on %s", l.LocalAddr())
 	buf := make([]byte, 512)
 	for {
 		n, addr, err := l.ReadFrom(buf)
 		if err != nil {
-			Log("Reading from socket: %s", err)
+			Logf("Reading from socket: %s", err)
 			continue
 		}
 
@@ -77,7 +75,7 @@ func ListenAndServe(family, addr string, handler Handler) error {
 func transfer(addr net.Addr, req *rrq, handler Handler) {
 	conn, err := net.Dial("udp4", addr.String())
 	if err != nil {
-		Log("Couldn't set up TFTP socket for %s: %s", addr, err)
+		Logf("Couldn't set up TFTP socket for %s: %s", addr, err)
 		return
 	}
 	defer conn.Close()
@@ -115,18 +113,18 @@ func transfer(addr net.Addr, req *rrq, handler Handler) {
 		binary.BigEndian.PutUint16(buf[2:4], seq)
 		n, err := io.ReadFull(f, buf[4:])
 		if err != nil && err != io.ErrUnexpectedEOF {
-			Log("Transfer to %s failed: %s", addr, err)
+			Logf("Transfer to %s failed: %s", addr, err)
 			conn.Write(mkError(err))
 			return
 		}
 		if err = sendPacket(conn, buf[:n+4], seq); err != nil {
-			Log("Transfer to %s failed: %s", addr, err)
+			Logf("Transfer to %s failed: %s", addr, err)
 			return
 		}
 		seq++
 		if n < bsize {
 			// Transfer complete, we're done.
-			Log("Sent %q to %s", req.Filename, addr)
+			Logf("Sent %q to %s", req.Filename, addr)
 			return
 		}
 	}
