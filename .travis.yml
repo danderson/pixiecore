@@ -10,6 +10,6 @@ before_script:
 script:
   - glide install
   - GO15VENDOREXPERIMENT=1 go test $(glide novendor)
-  - go vet $(go list ./... | grep -v '/vendor/')
+  - go vet . ./tftp
   - golint .
   - golint tftp
