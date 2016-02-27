@@ -306,7 +306,6 @@ func (b *staticBooter) BootSpec(unused net.HardwareAddr, prefix string) (*BootSp
 
 func (b staticBooter) Read(id string) (io.ReadCloser, string, error) {
 	if id == "kernel" {
-		fmt.Println(b.kernelPath)
 		f, err := os.Open(b.kernelPath)
 		return f, "kernel", err
 	} else if i, err := strconv.Atoi(id); err == nil && i >= 0 && i < len(b.initrdPaths) {
