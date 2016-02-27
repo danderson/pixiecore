@@ -100,7 +100,7 @@ func main() {
 	}()
 	go func() {
 		addrTFTP := fmt.Sprintf("%s:%d", *listenAddr, *portTFTP)
-		tftp.Log = func(msg string, args ...interface{}) { Log("TFTP", msg, args...) }
+		tftp.Logf = func(msg string, args ...interface{}) { Log("TFTP", msg, args...) }
 		tftp.Debug = func(msg string, args ...interface{}) { Debug("TFTP", msg, args...) }
 		log.Fatalln(tftp.ListenAndServe("udp4", addrTFTP, tftp.Blob(pxelinux)))
 	}()
