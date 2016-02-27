@@ -9,7 +9,8 @@ install:
 before_script:
 script:
   - glide install
+  - GO15VENDOREXPERIMENT=1 go build .
   - GO15VENDOREXPERIMENT=1 go test $(glide novendor)
-  #- go vet . ./tftp
-  #- golint .
-  #- golint tftp
+  - go vet . ./tftp
+  - golint .
+  - golint tftp
