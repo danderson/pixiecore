@@ -1,0 +1,15 @@
+language: go
+go:
+  - 1.5
+  - 1.6
+  - tip
+install:
+  - go get github.com/Masterminds/glide
+  - go get github.com/golang/lint/golint
+before_script:
+script:
+  - glide install
+  - GO15VENDOREXPERIMENT=1 go test $(glide novendor)
+  - go vet $(go list ./... | grep -v '/vendor/')
+  - golint .
+  - golint tftp
