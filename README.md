@@ -21,6 +21,8 @@ Pixiecore can be used either as a simple "just boot into this OS
 image" tool, or as a building block of a machine management system
 with its API mode.
 
+[![Build Status](https://travis-ci.org/danderson/pixiecore.svg?branch=master)](https://travis-ci.org/danderson/pixiecore)
+
 ## Pixiecore in static mode ("I just want to boot 5 machines")
 
 Run the pixiecore binary, passing it a kernel and initrd, and
