@@ -9,8 +9,8 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
-type PXEPacket struct {
-	DHCPPacket
+type pxePacket struct {
+	dhcpPacket
 	ClientIP net.IP
 	// The boot type requested by the client. We need to mirror this
 	// in the PXE reply.
@@ -19,7 +19,7 @@ type PXEPacket struct {
 	HTTPServer string
 }
 
-func ServePXE(pxeAddr string, httpPort int) error {
+func servePXE(pxeAddr string, httpPort int) error {
 	conn, err := net.ListenPacket("udp4", pxeAddr)
 	if err != nil {
 		return err
@@ -39,9 +39,9 @@ func ServePXE(pxeAddr string, httpPort int) error {
 			continue
 		}
 
-		req, err := ParsePXE(buf[:n])
+		req, err := parsePXE(buf[:n])
 		if err != nil {
-			Debug("PXE", "ParsePXE: %s", err)
+			Debug("PXE", "parsePXE: %s", err)
 			continue
 		}
 
@@ -54,7 +54,7 @@ func ServePXE(pxeAddr string, httpPort int) error {
 
 		Log("PXE", "Chainloading %s (%s) to pxelinux (via %s)", req.MAC, req.ClientIP, req.ServerIP)
 
-		if _, err := l.WriteTo(ReplyPXE(req), &ipv4.ControlMessage{
+		if _, err := l.WriteTo(replyPXE(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
 		}, addr); err != nil {
 			Log("PXE", "Responding to %s: %s", req.MAC, err)
@@ -63,7 +63,7 @@ func ServePXE(pxeAddr string, httpPort int) error {
 	}
 }
 
-func ReplyPXE(p *PXEPacket) []byte {
+func replyPXE(p *pxePacket) []byte {
 	var b bytes.Buffer
 
 	// Fixed length BOOTP response
@@ -115,13 +115,13 @@ func ReplyPXE(p *PXEPacket) []byte {
 	return b.Bytes()
 }
 
-func ParsePXE(b []byte) (req *PXEPacket, err error) {
+func parsePXE(b []byte) (req *pxePacket, err error) {
 	if len(b) < 240 {
 		return nil, errors.New("packet too short")
 	}
 
-	ret := &PXEPacket{
-		DHCPPacket: DHCPPacket{
+	ret := &pxePacket{
+		dhcpPacket: dhcpPacket{
 			TID: b[4:8],
 			MAC: net.HardwareAddr(b[28:34]),
 		},

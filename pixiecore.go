@@ -92,11 +92,11 @@ func main() {
 
 	go func() {
 		addrDHCP := fmt.Sprintf("%s:%d", *listenAddr, *portDHCP)
-		log.Fatalln(ServeProxyDHCP(addrDHCP, booter))
+		log.Fatalln(serveProxyDHCP(addrDHCP, booter))
 	}()
 	go func() {
 		addrPXE := fmt.Sprintf("%s:%d", *listenAddr, *portPXE)
-		log.Fatalln(ServePXE(addrPXE, *portHTTP))
+		log.Fatalln(servePXE(addrPXE, *portHTTP))
 	}()
 	go func() {
 		addrTFTP := fmt.Sprintf("%s:%d", *listenAddr, *portTFTP)
@@ -105,7 +105,7 @@ func main() {
 		log.Fatalln(tftp.ListenAndServe("udp4", addrTFTP, tftp.Blob(pxelinux)))
 	}()
 	go func() {
-		log.Fatalln(ServeHTTP(*listenAddr, *portHTTP, booter, ldlinux))
+		log.Fatalln(serveHTTP(*listenAddr, *portHTTP, booter, ldlinux))
 	}()
-	RecordLogs(*debug)
+	recordLogs(*debug)
 }

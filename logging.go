@@ -5,15 +5,15 @@ import (
 	"log"
 )
 
-type LogEntry struct {
+type logEntry struct {
 	Subsystem string
 	Debug     bool
 	Msg       string
 }
 
-var logCh = make(chan LogEntry)
+var logCh = make(chan logEntry)
 
-func RecordLogs(debug bool) {
+func recordLogs(debug bool) {
 	for l := range logCh {
 		if l.Debug && !debug {
 			continue
@@ -22,10 +22,12 @@ func RecordLogs(debug bool) {
 	}
 }
 
+// Log records an informational message.
 func Log(subsystem string, msg string, args ...interface{}) {
-	logCh <- LogEntry{subsystem, false, fmt.Sprintf(msg, args...)}
+	logCh <- logEntry{subsystem, false, fmt.Sprintf(msg, args...)}
 }
 
+// Debug records a message about the internals of Pixiecore.
 func Debug(subsystem string, msg string, args ...interface{}) {
-	logCh <- LogEntry{subsystem, true, fmt.Sprintf(msg, args...)}
+	logCh <- logEntry{subsystem, true, fmt.Sprintf(msg, args...)}
 }

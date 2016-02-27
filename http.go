@@ -123,7 +123,7 @@ func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
 	Log("HTTP", "Sent %s to %s (%d bytes)", pretty, r.RemoteAddr, written)
 }
 
-func ServeHTTP(addr string, port int, booter Booter, ldlinux []byte) error {
+func serveHTTP(addr string, port int, booter Booter, ldlinux []byte) error {
 	s := &httpServer{
 		booter:  booter,
 		ldlinux: ldlinux,

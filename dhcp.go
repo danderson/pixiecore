@@ -12,7 +12,7 @@ import (
 
 var dhcpMagic = []byte{99, 130, 83, 99}
 
-type DHCPPacket struct {
+type dhcpPacket struct {
 	TID  []byte
 	MAC  net.HardwareAddr
 	GUID []byte
@@ -20,7 +20,7 @@ type DHCPPacket struct {
 	ServerIP net.IP
 }
 
-func ServeProxyDHCP(addr string, booter Booter) error {
+func serveProxyDHCP(addr string, booter Booter) error {
 	conn, err := net.ListenPacket("udp4", addr)
 	if err != nil {
 		return err
@@ -43,9 +43,9 @@ func ServeProxyDHCP(addr string, booter Booter) error {
 		udpAddr := addr.(*net.UDPAddr)
 		udpAddr.IP = net.IPv4bcast
 
-		req, err := ParseDHCP(buf[:n])
+		req, err := parseDHCP(buf[:n])
 		if err != nil {
-			Debug("ProxyDHCP", "ParseDHCP: %s", err)
+			Debug("ProxyDHCP", "parseDHCP: %s", err)
 			continue
 		}
 
@@ -61,7 +61,7 @@ func ServeProxyDHCP(addr string, booter Booter) error {
 		}
 
 		Log("ProxyDHCP", "Offering to boot %s (via %s)", req.MAC, req.ServerIP)
-		if _, err := l.WriteTo(OfferDHCP(req), &ipv4.ControlMessage{
+		if _, err := l.WriteTo(offerDHCP(req), &ipv4.ControlMessage{
 			IfIndex: msg.IfIndex,
 		}, udpAddr); err != nil {
 			Log("ProxyDHCP", "Responding to %s: %s", req.MAC, err)
@@ -70,7 +70,7 @@ func ServeProxyDHCP(addr string, booter Booter) error {
 	}
 }
 
-func OfferDHCP(p *DHCPPacket) []byte {
+func offerDHCP(p *dhcpPacket) []byte {
 	var b bytes.Buffer
 
 	// Fixed length BOOTP response
@@ -123,12 +123,12 @@ func OfferDHCP(p *DHCPPacket) []byte {
 	return b.Bytes()
 }
 
-func ParseDHCP(b []byte) (req *DHCPPacket, err error) {
+func parseDHCP(b []byte) (req *dhcpPacket, err error) {
 	if len(b) < 240 {
 		return nil, errors.New("packet too short")
 	}
 
-	ret := &DHCPPacket{
+	ret := &dhcpPacket{
 		TID: b[4:8],
 		MAC: net.HardwareAddr(b[28:34]),
 	}
