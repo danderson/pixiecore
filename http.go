@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -74,15 +75,22 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cfg := fmt.Sprintf(`
-SAY %s
+	var cfg bytes.Buffer
+	fmt.Fprintf(&cfg, `SAY %s
 DEFAULT linux
 LABEL linux
-LINUX %s
-APPEND initrd=%s %s
-`, strings.Replace(limerick, "\n", "\nSAY ", -1), spec.Kernel, strings.Join(spec.Initrd, ","), spec.Cmdline)
-
-	w.Write([]byte(cfg))
+KERNEL %s
+`, strings.Replace(limerick, "\n", "\nSAY ", -1), spec.Kernel)
+	args := spec.Cmdline
+	if len(spec.Initrd) > 0 {
+		args = fmt.Sprintf("initrd=%s %s", strings.Join(spec.Initrd, ","), args)
+	}
+	if args != "" {
+		fmt.Fprintf(&cfg, "APPEND %s", args)
+	}
+	if _, err := io.Copy(w, &cfg); err != nil {
+		Log("HTTP", "Error writing pxelinux configuration: %s", err)
+	}
 	Log("HTTP", "Sent pxelinux config to %s (%s)", mac, r.RemoteAddr)
 }
 

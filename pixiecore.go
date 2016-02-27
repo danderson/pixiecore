@@ -56,12 +56,13 @@ func pickBooter() (Booter, error) {
 		if *apiServer != "" {
 			return nil, errors.New("cannot provide -api with -kernel")
 		}
-		if *initrdFile == "" {
-			return nil, errors.New("must provide -initrd with -kernel")
-		}
 
 		log.Printf("Starting Pixiecore in static mode")
-		return StaticBooter(*kernelFile, strings.Split(*initrdFile, ","), *kernelCmdline), nil
+		var initrds []string
+		if *initrdFile != "" {
+			initrds = strings.Split(*initrdFile, ",")
+		}
+		return StaticBooter(*kernelFile, initrds, *kernelCmdline), nil
 
 	default:
 		return nil, errors.New("must specify either -api, or -kernel/-initrd")
