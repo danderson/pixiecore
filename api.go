@@ -26,10 +26,17 @@ import (
 // opaque reference back into Booter.File(). The bytes have no other
 // significance beyond that. They also do not need to be
 // human-readable.
+//
+// LoadFromFile is an optional boolean flag. When set, kernel and initrd will be loaded from a 
+// local file reference instead of HTTP.
+//
+// Message is an optional string to be displayed on the client terminal instead of current limerick
 type BootSpec struct {
 	Kernel  string
 	Initrd  []string
 	Cmdline string
+        LoadFromFile  bool
+        Message       string
 }
 
 type spec struct {
@@ -111,22 +118,28 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 	}
 
 	r := struct {
-		Kernel  string      `json:"kernel"`
-		Initrd  []string    `json:"initrd"`
-		Cmdline interface{} `json:"cmdline"`
+		Kernel           string      `json:"kernel"`
+		Initrd           []string    `json:"initrd"`
+		Cmdline          interface{} `json:"cmdline"`
+		LoadFromFile     bool        `json:"loadFromFile"`
+		Message          string      `json:"message"`
 	}{}
 	if err = json.NewDecoder(body).Decode(&r); err != nil {
 		return nil, err
 	}
 
-	r.Kernel, err = b.makeURLAbsolute(r.Kernel)
-	if err != nil {
-		return nil, err
-	}
-	for i, img := range r.Initrd {
-		r.Initrd[i], err = b.makeURLAbsolute(img)
+	if r.LoadFromFile {
+            fileURLPrefix = ""
+        } else {
+		r.Kernel, err = b.makeURLAbsolute(r.Kernel)
 		if err != nil {
 			return nil, err
+			}
+		for i, img := range r.Initrd {
+			r.Initrd[i], err = b.makeURLAbsolute(img)
+			if err != nil {
+			return nil, err
+			}
 		}
 	}
 
@@ -150,9 +163,13 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		if err != nil {
 			return nil, err
 		}
+	case nil:
 	default:
 		return nil, fmt.Errorf("API server returned unknown type %T for kernel cmdline", r.Cmdline)
 	}
+    
+	ret.LoadFromFile = r.LoadFromFile
+	ret.Message = r.Message
 
 	return &ret, nil
 }
@@ -162,6 +179,16 @@ func (b *remoteBooter) Read(id string) (io.ReadCloser, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+
+	parsedURL, err := url.Parse(u)
+            if err != nil {
+		return nil, "", err
+	}
+        
+        if !parsedURL.IsAbs() {
+            f, err := os.Open(u)
+            return f, u, err
+        }
 
 	resp, err := http.Get(u)
 	if err != nil {
