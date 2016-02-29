@@ -57,6 +57,13 @@ provide `/foo` as a URL to Pixiecore running with `-api
 http://bar.com/baz`, Pixiecore will fetch `http://bar.com/foo`, _not_
 `http://bar.com/baz/foo`.
 
+In addition to `http` and `https` URLs, Pixiecore supports `file://`
+URLs to serve files from the filesystem of the machine running
+Pixiecore. You can use this to host large OS images near the target
+machines, while still deciding what to boot from a central but remote
+location. Pixiecore uses the "path" segment of the URL, so all
+`file://` URLs are absolute filesystem paths.
+
 Pixiecore will not point booting machines directly at the given
 URLs. Instead, it will point the booting machines to a proxy URL on
 Pixiecore's HTTP server, and proxy the transfer.
@@ -139,6 +146,15 @@ Boot from HTTPS, with extra commandline flags.
     "selinux": "1",
     "coreos.autologin": true
   }
+}
+```
+
+Boot from Pixiecore's local filesystem.
+
+```json
+{
+  "kernel": "file:///mnt/data/kernel",
+  "initrd": ["file:///mnt/data/initrd"],
 }
 ```
 

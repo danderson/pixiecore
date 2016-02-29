@@ -158,19 +158,43 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 }
 
 func (b *remoteBooter) Read(id string) (io.ReadCloser, string, error) {
-	u, err := b.getURL(id)
+	urlStr, err := b.getURL(id)
 	if err != nil {
 		return nil, "", err
 	}
 
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, urlStr, fmt.Errorf("%q is not an URL", urlStr)
+	}
+	var ret io.ReadCloser
+	if u.Scheme == "file" {
+		ret, err = b.readLocal(u)
+	} else {
+		// urlStr will get reparsed by http.Get, which is mildly
+		// wasteful, but the code looks nicer than constructing a
+		// Request.
+		ret, err = b.readRemote(urlStr)
+	}
+	if err != nil {
+		return nil, urlStr, err
+	}
+	return ret, urlStr, nil
+}
+
+func (b *remoteBooter) readLocal(u *url.URL) (io.ReadCloser, error) {
+	return os.Open(u.Path)
+}
+
+func (b *remoteBooter) readRemote(u string) (io.ReadCloser, error) {
 	resp, err := http.Get(u)
 	if err != nil {
-		return nil, u, err
+		return nil, err
 	}
 	if resp.StatusCode != 200 {
-		return nil, u, fmt.Errorf("GET %q failed: %s", u, resp.Status)
+		return nil, fmt.Errorf("GET %q failed: %s", u, resp.Status)
 	}
-	return resp.Body, u, nil
+	return resp.Body, nil
 }
 
 func (b *remoteBooter) Write(id string, body io.Reader) (io.ReadCloser, string, error) {
