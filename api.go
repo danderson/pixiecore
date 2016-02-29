@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "path/filepath"
 
 	"golang.org/x/crypto/nacl/secretbox"
 )
@@ -26,10 +27,13 @@ import (
 // opaque reference back into Booter.File(). The bytes have no other
 // significance beyond that. They also do not need to be
 // human-readable.
+//
+// Message is an optional string to be displayed on the client terminal instead of current limerick
 type BootSpec struct {
-	Kernel  string
-	Initrd  []string
-	Cmdline string
+	Kernel     string
+	Initrd     []string
+	Cmdline    string
+    Message    string
 }
 
 type spec struct {
@@ -111,24 +115,27 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 	}
 
 	r := struct {
-		Kernel  string      `json:"kernel"`
-		Initrd  []string    `json:"initrd"`
-		Cmdline interface{} `json:"cmdline"`
+		Kernel           string      `json:"kernel"`
+		Initrd           []string    `json:"initrd"`
+		Cmdline          interface{} `json:"cmdline"`
+		Message          string      `json:"message"`
 	}{}
 	if err = json.NewDecoder(body).Decode(&r); err != nil {
 		return nil, err
 	}
 
-	r.Kernel, err = b.makeURLAbsolute(r.Kernel)
-	if err != nil {
-		return nil, err
+    r.Kernel, err = b.makeURLAbsolute(r.Kernel)
+    if err != nil {
+    return nil, err
+    }
+    for i, img := range r.Initrd {
+        r.Initrd[i], err = b.makeURLAbsolute(img)
+        if err != nil {
+        return nil, err
+        }
 	}
-	for i, img := range r.Initrd {
-		r.Initrd[i], err = b.makeURLAbsolute(img)
-		if err != nil {
-			return nil, err
-		}
-	}
+
+    if strings.HasPrefix(r.Kernel, "file:") {fileURLPrefix = ""}
 
 	var ret BootSpec
 	if ret.Kernel, err = b.signURL(r.Kernel, fileURLPrefix); err != nil {
@@ -150,9 +157,12 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		if err != nil {
 			return nil, err
 		}
+	case nil:
 	default:
 		return nil, fmt.Errorf("API server returned unknown type %T for kernel cmdline", r.Cmdline)
 	}
+    
+	ret.Message = r.Message
 
 	return &ret, nil
 }
@@ -162,6 +172,13 @@ func (b *remoteBooter) Read(id string) (io.ReadCloser, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+
+    if strings.HasPrefix(u, "file:") {
+        relpath, err := filepath.Rel("file:", u)
+        u = "/" + relpath
+        f, err := os.Open(u)
+        return f, u, err
+    }
 
 	resp, err := http.Get(u)
 	if err != nil {

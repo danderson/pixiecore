@@ -75,12 +75,15 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var cfg bytes.Buffer
+    var message string
+	if (len(spec.Message) > 0) {message = spec.Message} else {message = limerick}
+
+    var cfg bytes.Buffer
 	fmt.Fprintf(&cfg, `SAY %s
 DEFAULT linux
 LABEL linux
 KERNEL %s
-`, strings.Replace(limerick, "\n", "\nSAY ", -1), spec.Kernel)
+`, strings.Replace(message, "\n", "\nSAY ", -1), spec.Kernel)
 	args := spec.Cmdline
 	if len(spec.Initrd) > 0 {
 		args = fmt.Sprintf("initrd=%s %s", strings.Join(spec.Initrd, ","), args)
@@ -136,6 +139,7 @@ func serveHTTP(addr string, port int, booter Booter, ldlinux []byte) error {
 	http.HandleFunc("/ldlinux.c32", s.Ldlinux)
 	http.HandleFunc("/pxelinux.cfg/", s.PxelinuxConfig)
 	http.HandleFunc("/f/", s.File)
+	http.HandleFunc("/", s.File)
 
 	httpAddr := fmt.Sprintf("%s:%d", addr, port)
 	Log("HTTP", "Listening on %s", httpAddr)
