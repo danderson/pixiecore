@@ -148,16 +148,18 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		ret.Initrd = append(ret.Initrd, initrd)
 	}
 
-	switch c := r.Cmdline.(type) {
-	case string:
-		ret.Cmdline = c
-	case map[string]interface{}:
-		ret.Cmdline, err = b.constructCmdline(c, fileURLPrefix)
-		if err != nil {
-			return nil, err
+	if r.Cmdline != nil {
+		switch c := r.Cmdline.(type) {
+		case string:
+			ret.Cmdline = c
+		case map[string]interface{}:
+			ret.Cmdline, err = b.constructCmdline(c, fileURLPrefix)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("API server returned unknown type %T for kernel cmdline", r.Cmdline)
 		}
-	default:
-		return nil, fmt.Errorf("API server returned unknown type %T for kernel cmdline", r.Cmdline)
 	}
 
 	return &ret, nil
