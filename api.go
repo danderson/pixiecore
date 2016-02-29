@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "path/filepath"
 
 	"golang.org/x/crypto/nacl/secretbox"
 )
@@ -27,16 +28,12 @@ import (
 // significance beyond that. They also do not need to be
 // human-readable.
 //
-// LoadFromFile is an optional boolean flag. When set, kernel and initrd will be loaded from a 
-// local file reference instead of HTTP.
-//
 // Message is an optional string to be displayed on the client terminal instead of current limerick
 type BootSpec struct {
-	Kernel  string
-	Initrd  []string
-	Cmdline string
-        LoadFromFile  bool
-        Message       string
+	Kernel     string
+	Initrd     []string
+	Cmdline    string
+    Message    string
 }
 
 type spec struct {
@@ -121,27 +118,24 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		Kernel           string      `json:"kernel"`
 		Initrd           []string    `json:"initrd"`
 		Cmdline          interface{} `json:"cmdline"`
-		LoadFromFile     bool        `json:"loadFromFile"`
 		Message          string      `json:"message"`
 	}{}
 	if err = json.NewDecoder(body).Decode(&r); err != nil {
 		return nil, err
 	}
 
-	if r.LoadFromFile {
-            fileURLPrefix = ""
-        } else {
-		r.Kernel, err = b.makeURLAbsolute(r.Kernel)
-		if err != nil {
-			return nil, err
-			}
-		for i, img := range r.Initrd {
-			r.Initrd[i], err = b.makeURLAbsolute(img)
-			if err != nil {
-			return nil, err
-			}
-		}
+    r.Kernel, err = b.makeURLAbsolute(r.Kernel)
+    if err != nil {
+    return nil, err
+    }
+    for i, img := range r.Initrd {
+        r.Initrd[i], err = b.makeURLAbsolute(img)
+        if err != nil {
+        return nil, err
+        }
 	}
+
+    if strings.HasPrefix(r.Kernel, "file:") {fileURLPrefix = ""}
 
 	var ret BootSpec
 	if ret.Kernel, err = b.signURL(r.Kernel, fileURLPrefix); err != nil {
@@ -168,7 +162,6 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		return nil, fmt.Errorf("API server returned unknown type %T for kernel cmdline", r.Cmdline)
 	}
     
-	ret.LoadFromFile = r.LoadFromFile
 	ret.Message = r.Message
 
 	return &ret, nil
@@ -180,15 +173,12 @@ func (b *remoteBooter) Read(id string) (io.ReadCloser, string, error) {
 		return nil, "", err
 	}
 
-	parsedURL, err := url.Parse(u)
-            if err != nil {
-		return nil, "", err
-	}
-        
-        if !parsedURL.IsAbs() {
-            f, err := os.Open(u)
-            return f, u, err
-        }
+    if strings.HasPrefix(u, "file:") {
+        relpath, err := filepath.Rel("file:", u)
+        u = "/" + relpath
+        f, err := os.Open(u)
+        return f, u, err
+    }
 
 	resp, err := http.Get(u)
 	if err != nil {

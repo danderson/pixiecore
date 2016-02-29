@@ -39,6 +39,7 @@ following specification, with **_italicized_** entries being optional:
     that it proxies the request (see below for why you'd want that).
     - **url** (string): any URL. Pixiecore will rewrite the URL such
       that it proxies the request.
+- **_message_** (string): customized message to be printed to client terminal
 
 Malformed 200 responses will have the same result as a non-200
 response - Pixiecore will ignore the requesting machine.
@@ -78,6 +79,9 @@ definitely not okay for retrieval over the internet. Proxying through
 Pixiecore means that your API server can provide HTTPS URLs, and
 everything but the very last mile between Pixiecore and the machine
 will be secure.
+
+Alternatively, the images **could** be loaded from file. Anyone wishing
+to do so, must set the file paths as absolute file URL's.
 
 The exact URLs visible to the booting machine are an implementation
 detail of Pixiecore and are subject to breaking change at any
@@ -139,6 +143,16 @@ Boot from HTTPS, with extra commandline flags.
     "selinux": "1",
     "coreos.autologin": true
   }
+}
+```
+
+Boot from file URL, and display a custom label
+
+```json
+{
+  "kernel": "file:/kernel",
+  "initrd": ["file:/initrd.0", "file:/initrd.1"],
+  "message": "We bring good tidings"
 }
 ```
 

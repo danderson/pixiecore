@@ -21,7 +21,7 @@ LOCALBOOT 0
 
 // A silly limerick displayed while pxelinux loads big OS
 // images. Possibly the most important piece of this program.
-var message string = `
+const limerick = `
 	        There once was a protocol called PXE,
 	        Whose specification was overly tricksy.
 	        A committee refined it,
@@ -75,9 +75,10 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if (len(spec.Message) > 0) { message = spec.Message }
+    var message string
+	if (len(spec.Message) > 0) {message = spec.Message} else {message = limerick}
 
-	var cfg bytes.Buffer
+    var cfg bytes.Buffer
 	fmt.Fprintf(&cfg, `SAY %s
 DEFAULT linux
 LABEL linux
