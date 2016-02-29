@@ -126,8 +126,7 @@ verification of the image signatures. This is an example only.
 ```
 
 Boot from API server provided files. Pixiecore will grab kernel and
-initrd from `<apiserver-prefix>/v1/file/kernel` and
-`<apiserver-prefix>/v1/file/initrd.[01]`.
+initrd from `<apiserver-host>/kernel` and `<apiserver-host>/initrd.[01]`.
 
 ```json
 {
