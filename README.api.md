@@ -39,6 +39,10 @@ following specification, with **_italicized_** entries being optional:
     that it proxies the request (see below for why you'd want that).
     - **url** (string): any URL. Pixiecore will rewrite the URL such
       that it proxies the request.
+- **_message_** (string): A message to display before booting the
+  provided configuration. Note that displaying this message is on
+  a _best-effort basis only_, as particular implementations of the
+  boot process may not support displaying text.
 
 Malformed 200 responses will have the same result as a non-200
 response - Pixiecore will ignore the requesting machine.

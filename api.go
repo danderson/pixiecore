@@ -19,7 +19,9 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
-// A BootSpec identifies a kernel, kernel commandline, and set of initrds to boot on a machine.
+// A BootSpec identifies a kernel, kernel commandline, and set of
+// initrds to boot on a machine. It can also provide a message that
+// Pixiecore will attempt to print before booting.
 //
 // Kernel and Initrds are opaque reference strings provided by a
 // Booter. When we need to get the associated bytes, we pass the
@@ -30,6 +32,7 @@ type BootSpec struct {
 	Kernel  string
 	Initrd  []string
 	Cmdline string
+	Message string
 }
 
 type spec struct {
@@ -114,6 +117,7 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		Kernel  string      `json:"kernel"`
 		Initrd  []string    `json:"initrd"`
 		Cmdline interface{} `json:"cmdline"`
+		Message string      `json:"message"`
 	}{}
 	if err = json.NewDecoder(body).Decode(&r); err != nil {
 		return nil, err
@@ -130,7 +134,9 @@ func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*Boo
 		}
 	}
 
-	var ret BootSpec
+	ret := BootSpec{
+		Message: r.Message,
+	}
 	if ret.Kernel, err = b.signURL(r.Kernel, fileURLPrefix); err != nil {
 		return nil, err
 	}

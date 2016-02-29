@@ -24,6 +24,7 @@ var (
 	initrdFile    = flag.String("initrd", "", "Path to the initrd to pass to the kernel")
 	kernelCmdline = flag.String("cmdline", "", "Additional arguments for the kernel commandline")
 	cloudInit     = flag.String("cloud-init", "", "Cloud init file to load")
+	bootMessage   = flag.String("boot-message", "", "Custom boot message to print")
 )
 
 func main() {
@@ -47,10 +48,12 @@ func API(w http.ResponseWriter, r *http.Request) {
 		K string                 `json:"kernel"`
 		I []string               `json:"initrd"`
 		C map[string]interface{} `json:"cmdline"`
+		M string                 `json:"message,omitempty"`
 	}{
 		K: "/kernel",
 		I: []string{"/initrd"},
 		C: map[string]interface{}{},
+		M: *bootMessage,
 	}
 
 	for _, arg := range strings.Split(*kernelCmdline, " ") {

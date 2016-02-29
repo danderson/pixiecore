@@ -75,12 +75,16 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := limerick
+	if spec.Message != "" {
+		msg = spec.Message
+	}
 	var cfg bytes.Buffer
 	fmt.Fprintf(&cfg, `SAY %s
 DEFAULT linux
 LABEL linux
 KERNEL %s
-`, strings.Replace(limerick, "\n", "\nSAY ", -1), spec.Kernel)
+`, strings.Replace(msg, "\n", "\nSAY ", -1), spec.Kernel)
 	args := spec.Cmdline
 	if len(spec.Initrd) > 0 {
 		args = fmt.Sprintf("initrd=%s %s", strings.Join(spec.Initrd, ","), args)
