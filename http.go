@@ -37,6 +37,22 @@ type httpServer struct {
 }
 
 func (s *httpServer) Ldlinux(w http.ResponseWriter, r *http.Request) {
+	macCookie, err := r.Cookie("_Syslinux_BOOTIF")
+	mac, err := getMac(macCookie.String())
+	if err != nil {
+		Debug("HTTP", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	Debug("HTTP", "Checking whether to boot %v", mac)
+	err = s.booter.ShouldBoot(mac)
+	if err != nil {
+		Debug("HTTP", "Telling pxelinux on %s (%s) to boot from disk because of API server verdict: %s", mac, r.RemoteAddr, err)
+		w.Write([]byte(bootFromDisk))
+		return
+	}
+
 	Debug("HTTP", "Starting send of ldlinux.c32 to %s (%d bytes)", r.RemoteAddr, len(s.ldlinux))
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Write(s.ldlinux)
@@ -48,15 +64,10 @@ func (s *httpServer) PxelinuxConfig(w http.ResponseWriter, r *http.Request) {
 
 	macStr := filepath.Base(r.URL.Path)
 	errStr := fmt.Sprintf("%s requested a pxelinux config from URL %q, which does not include a MAC address", r.RemoteAddr, r.URL)
-	if !strings.HasPrefix(macStr, "01-") {
-		Debug("HTTP", errStr)
-		http.Error(w, "Missing MAC address in request", http.StatusBadRequest)
-		return
-	}
-	mac, err := net.ParseMAC(macStr[3:])
+	mac, err := getMac(macStr)
 	if err != nil {
 		Debug("HTTP", errStr)
-		http.Error(w, "Malformed MAC address in request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -96,6 +107,18 @@ KERNEL %s
 		Log("HTTP", "Error writing pxelinux configuration: %s", err)
 	}
 	Log("HTTP", "Sent pxelinux config to %s (%s)", mac, r.RemoteAddr)
+}
+
+func getMac(macStr string) (mac net.HardwareAddr, err error) {
+	if !strings.HasPrefix(macStr, "01-") {
+		return nil, fmt.Errorf("Missing MAC address in request")
+	}
+	mac, err = net.ParseMAC(macStr[3:])
+	if err != nil {
+		return nil, fmt.Errorf("Malformed MAC address in request")
+	}
+
+	return mac, err
 }
 
 func (s *httpServer) File(w http.ResponseWriter, r *http.Request) {
