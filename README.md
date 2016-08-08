@@ -34,14 +34,14 @@ there's a
 
 ### Tiny Core Linux
 
-Tiny Core Linux is a positively tiny distro, clocking in at 24M in the
+Tiny Core Linux is a positively tiny distro, clocking in at 10M in the
 configuration we'll be using (it can go lower than that). Let's set
 ourselves up such that any PXE booting machine on the network boots
 into a TinyCore ramdisk:
 
 ```shell
-# Fetch the kernel and the 3 cpio files that form the filesystem.
-wget http://tinycorelinux.net/6.x/x86/release/distribution_files/{vmlinuz64,modules64.gz,core.gz,rootfs.gz}
+# Fetch the kernel and the 2 cpio files that form the filesystem.
+wget http://tinycorelinux.net/7.x/x86/release/distribution_files/{vmlinuz64,modules64.gz,rootfs.gz}
 
 # In the real world, you would AUTHENTICATE YOUR DOWNLOADS here. TCL sadly
 # only distributes images over HTTP, so it's anyone's guess what you
