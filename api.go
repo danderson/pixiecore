@@ -108,10 +108,12 @@ func (b *remoteBooter) ShouldBoot(hw net.HardwareAddr) error {
 
 func (b *remoteBooter) BootSpec(hw net.HardwareAddr, fileURLPrefix string) (*BootSpec, error) {
 	body, err := b.getAPIResponse(hw)
-	defer body.Close()
+
 	if err != nil {
 		return nil, err
 	}
+
+	defer body.Close()
 
 	r := struct {
 		Kernel  string      `json:"kernel"`

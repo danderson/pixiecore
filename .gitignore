@@ -1,3 +1,6 @@
+/src
+/pixiecore.iml
+/.idea
 pixiecore
 example/example
 .vagrant

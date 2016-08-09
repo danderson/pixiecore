@@ -13,10 +13,10 @@ import (
 var dhcpMagic = []byte{99, 130, 83, 99}
 
 type dhcpPacket struct {
-	TID  []byte
-	MAC  net.HardwareAddr
-	GUID []byte
-
+	TID      []byte
+	MAC      net.HardwareAddr
+	GUID     []byte
+	giaddr   net.IP
 	ServerIP net.IP
 }
 
@@ -41,7 +41,7 @@ func serveProxyDHCP(addr string, booter Booter) error {
 		}
 
 		udpAddr := addr.(*net.UDPAddr)
-		udpAddr.IP = net.IPv4bcast
+		udpAddr.Port = 68
 
 		req, err := parseDHCP(buf[:n])
 		if err != nil {
@@ -80,7 +80,9 @@ func offerDHCP(p *dhcpPacket) []byte {
 	bootp[2] = 6     // Hardware address length
 	bootp[10] = 0x80 // Please speak broadcast
 	copy(bootp[4:], p.TID)
+	copy(bootp[24:], p.giaddr)
 	copy(bootp[28:], p.MAC)
+
 	b.Write(bootp[:])
 
 	// DHCP magic
@@ -131,6 +133,7 @@ func parseDHCP(b []byte) (req *dhcpPacket, err error) {
 	ret := &dhcpPacket{
 		TID: b[4:8],
 		MAC: net.HardwareAddr(b[28:34]),
+		giaddr: net.IP(b[24:30]),
 	}
 
 	// BOOTP operation type
@@ -186,10 +189,10 @@ func dhcpOption(b []byte) (typ byte, val []byte, next []byte) {
 		return 255, nil, nil
 	}
 	typ, l := b[0], int(b[1])
-	if len(b) < l+2 {
+	if len(b) < l + 2 {
 		return 255, nil, nil
 	}
-	return typ, b[2 : 2+l], b[2+l:]
+	return typ, b[2 : 2 + l], b[2 + l:]
 }
 
 func interfaceIP(ifIdx int) (net.IP, error) {
