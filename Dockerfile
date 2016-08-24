@@ -1,1 +1,0 @@
-FROM danderson/go-app

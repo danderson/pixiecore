@@ -1,9 +1,0 @@
-package: github.com/danderson/pixiecore
-license: GPL
-import:
-- package: golang.org/x/crypto
-  subpackages:
-  - nacl/secretbox
-- package: golang.org/x/net
-  subpackages:
-  - ipv4
